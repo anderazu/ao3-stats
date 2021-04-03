@@ -4,8 +4,8 @@
 library(tidyverse)
 
 # Import data
-tags <- read_csv("tags-20210226.csv")
-works <- read_csv("works-20210226.csv")
+tags <- read_csv("data/tags-20210226.csv")
+works <- read_csv("data/works-20210226.csv")
 
 
 # Spaces in column names are annoying, ditch that

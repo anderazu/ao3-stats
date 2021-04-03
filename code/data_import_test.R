@@ -9,19 +9,19 @@ library(tidyverse)
 
 # Import tags 
 ptm <- proc.time()
-tags <- read_csv("tags-20210226.csv")
+tags <- read_csv("data/tags-20210226.csv")
 timet1 <- proc.time() - ptm
 
 # Save as .Rda file and delete old object
 ptm <- proc.time()
-save(tags, file = "tags_temp.Rda")
+save(tags, file = "data/tags_temp.Rda")
 (proc.time() - ptm)   # about 27 seconds
 
 rm(tags)
 
 # Re-import from Rda
 ptm <- proc.time()
-tags <- load("tags_temp.Rda")
+tags <- load("data/tags_temp.Rda")
 timet2 <- proc.time() - ptm
 
 
@@ -29,19 +29,19 @@ timet2 <- proc.time() - ptm
 
 # Import original csv
 ptm <- proc.time()
-works <- read_csv("works-20210226.csv")
+works <- read_csv("data/works-20210226.csv")
 timew1 <- proc.time() - ptm
 
 # Save as .Rda file and delete old object
 ptm <- proc.time()
-save(works, file = "works_temp.Rda")
+save(works, file = "data/works_temp.Rda")
 (proc.time() - ptm)   # about 80 seconds
 
 rm(works)
 
 # Re-import from Rda
 ptm <- proc.time()
-works <- load("works_temp.Rda")
+works <- load("data/works_temp.Rda")
 timew2 <- proc.time() - ptm
 
 ## How do the times compare?
@@ -49,5 +49,5 @@ cbind(timet1, timet2, timew1, timew2)[c(1:3), ]
 
 
 # Clean up temp files
-file.remove("tags_temp.Rda")
-file.remove("works_temp.Rda")
+file.remove("data/tags_temp.Rda")
+file.remove("data/works_temp.Rda")

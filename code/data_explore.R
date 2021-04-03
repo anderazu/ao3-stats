@@ -3,7 +3,7 @@ library(ggplot2)
 
 
 # Import data
-(load("works.Rda"))
+(load("data/works.Rda"))
 
 works_raw <- works
 
