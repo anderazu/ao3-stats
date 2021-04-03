@@ -1,0 +1,177 @@
+---
+title: "Exploratory plots on 2021 AO3 data dump"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(ggplot2)
+```
+
+## Import data
+
+Before this file, I ran `data_import_save.R`, which does minimal cleaning on the original CSV files and then exports them into `.Rda` format (loads faster, takes less disk space). 
+
+```{r cars}
+load("data/works.Rda")
+works_raw <- works
+```
+
+## Basic initial plots
+
+### Number of works posted by date
+
+First, I was curious about the works posted over time, as a whole and then by restricted and completed status. There are \Sexpr{nrow(works)} works listed in the file.
+
+```{r, message=FALSE}
+works %>% ggplot(mapping = aes(x = creat_date)) +
+  geom_histogram()
+```
+
+By complete/incomplete, the numbers are:
+
+```{r, echo=FALSE, message=FALSE}
+works %>% 
+  count(complete) %>% 
+  mutate(frac = n / nrow(works))
+
+works %>% ggplot(mapping = aes(x = creat_date)) +
+  geom_histogram() + 
+  facet_grid(cols = vars(complete)) + 
+  ggtitle("Works posted by date, by completion status")
+```
+
+By restricted/unrestricted (here, plotting fraction of works rather than raw number, or the restricted data gets totally squashed)
+
+```{r, echo=FALSE, message=FALSE}
+works %>% 
+  count(complete) %>% 
+  mutate(frac = n / nrow(works))
+
+works %>% ggplot(mapping = aes(x = creat_date)) +
+  geom_histogram(aes(y = ..density..)) + 
+  facet_grid(cols = vars(restricted)) + 
+  ggtitle("Works posted by date, by restricted status")
+```
+
+Slightly interesting that restricted works don't seem to increase at the same rate. Maybe the pandemic makes people less shy? Who knows. 
+
+
+### Cumultative works over time
+
+Next, I'm curious how the total evolved over time. This is easier if I start by accumulating the counts of each work type. 
+
+```{r}
+works <- works_raw %>% 
+  arrange(desc(row_number())) %>%   # invert rows first to count up
+  mutate(ctAll = row_number()) %>%  # count all works
+  group_by(complete) %>%     # count complete works
+  mutate(ctComplete = row_number()) %>% 
+  ungroup() %>% 
+  group_by(restricted) %>%   # now do restricted
+  mutate(ctRestrict = row_number()) %>% 
+  ungroup()
+
+works
+```
+
+The cumulative plot of all works over time looks like this. Second version was to see how exponential it was (answer: meh). 
+
+```{r}
+ct_all <- works %>% 
+  group_by(creat_date) %>% 
+  summarize(ctAll = max(ctAll))   
+
+# All works over time
+ct_all %>% ggplot(aes(x = creat_date, y = ctAll)) +
+  geom_line() + 
+  ggtitle("Cumulative works over time")
+
+# How exponential is it?
+ct_all %>% ggplot(aes(x = creat_date, y = ctAll)) +
+  geom_line() + 
+  scale_y_log10() + 
+  ggtitle("Cumulative works over time")
+```
+
+Then repeat, breaking out by complete/incomplete: 
+
+```{r, message=FALSE}
+ct_complete <- works %>% 
+  group_by(creat_date, complete) %>% 
+  summarize(ctComplete = max(ctComplete))
+
+# Complete works over time
+ct_complete %>% 
+  ggplot(mapping = aes(x = creat_date, y = ctComplete)) + 
+  geom_line(aes(color = complete))  +
+  ggtitle("Completed work count over time")
+```
+
+And restricted/unrestricted: 
+
+```{r, message=FALSE}
+ct_restrict <- works %>% 
+  group_by(creat_date, restricted) %>% 
+  summarize(ctRestrict = max(ctRestrict)) 
+
+# Restricted works over time
+ct_restrict %>% 
+  ggplot(mapping = aes(x = creat_date, y = ctRestrict)) + 
+  geom_line(aes(color = restricted)) +
+  ggtitle("Restricted work count over time")
+```
+
+
+## Language frequency
+
+Just plotting work frequency by language isn't super helpful, because English is too common. 
+
+```{r}
+works %>% 
+  count(language) %>% 
+  ggplot(aes(x = language, y = n)) + geom_col()
+```
+
+If you filter that away, the axis labels are still hard to read. There are 87 different languages represented! Here, I set an arbitrary threshold of at least 50 works to display.
+
+```{r}
+# Axis labels hard to read without filtering for frequency
+works %>% 
+  count(language) %>% 
+  filter(language != "en", n >= 50) %>% 
+  ggplot(aes(x = n, y = language)) + 
+  geom_col() +
+  ggtitle("Frequency of works by language (omitting English)")
+```
+
+Next, I was curious about development over time. First, filter down to the most frequent languages, excluding English: 
+
+```{r, message=FALSE}
+top_lang <- works %>% 
+  filter(language != "en") %>% 
+  count(language) %>% 
+  slice_max(order_by = n, n = 9)
+
+top_lang
+
+ct_lang <- works %>% 
+  filter(language %in% top_lang$language) %>% 
+  group_by(language) %>% 
+  mutate(ctLang = row_number()) %>%  # count all works
+  group_by(creat_date, language) %>% 
+  summarize(ctLang = max(ctLang))
+```
+
+I cut off at 9 because it makes the next plot a bit simpler and it turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
+
+```{r}
+ct_lang %>% 
+  ggplot(aes(x = creat_date, y = ctLang)) +
+  geom_line() + 
+  facet_wrap(vars(language)) + 
+  ggtitle("Works over time, top non-English languages")  
+```
+
+The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works.

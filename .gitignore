@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.Rdata
+.httr-oauth
+.DS_Store
+
+*.Rproj
+
+# Omit data files for this project
+*.Rda
+*.csv
