@@ -150,9 +150,10 @@ Next, I was curious about development over time. First, filter down to the most 
 
 ```{r, message=FALSE}
 top_lang <- works %>% 
-  filter(language != "en") %>% 
+  #filter(language != "en") %>% 
   count(language) %>% 
-  slice_max(order_by = n, n = 9)
+  slice_max(order_by = n, n = 10) %>% 
+  mutate(frac = n / nrow(works))
 
 top_lang
 
@@ -164,14 +165,26 @@ ct_lang <- works %>%
   summarize(ctLang = max(ctLang))
 ```
 
-I cut off at 9 because it makes the next plot a bit simpler and it turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
+I cut off at 10 because it's a round number, but it also turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
 
 ```{r}
 ct_lang %>% 
+  filter(language != "en") %>% 
   ggplot(aes(x = creat_date, y = ctLang)) +
   geom_line() + 
   facet_wrap(vars(language)) + 
   ggtitle("Works over time, top non-English languages")  
 ```
 
-The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works.
+The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works. To get a slightly better look at that and how it compares to the other growth rates, let's try one more: 
+
+```{r}
+ct_lang %>% 
+  filter(language != "en") %>% 
+  ggplot(aes(x = creat_date, y = ctLang)) +
+  geom_line(aes(color = language)) + 
+  scale_y_log10() +
+  ggtitle("Works over time, top non-English languages")  
+```
+
+The Chinese-language section has been growing faster than many other languages for a bit, starting around 2012 and with another change for the steeper around 2018-2019. 

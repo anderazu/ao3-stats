@@ -104,14 +104,16 @@ works %>%
   ggtitle("Frequency of works by language (omitting English)")
 
 
-# Plot most common over time?
+## Languages over time
 
 # Top non-English languages
 top_lang <- works %>% 
-  filter(language != "en") %>% 
+  #filter(language != "en") %>% 
   count(language) %>% 
-  slice_max(order_by = n, n = 9)
+  slice_max(order_by = n, n = 10) %>% 
+  mutate(frac = n / nrow(works))
 
+# Cumulative counts by language, per day
 ct_lang <- works %>% 
   filter(language %in% top_lang$language) %>% 
   group_by(language) %>% 
@@ -119,11 +121,22 @@ ct_lang <- works %>%
   group_by(creat_date, language) %>% 
   summarize(ctLang = max(ctLang))
 
+# Plots of cumulative works by language over time
 ct_lang %>% 
+  filter(language != "en") %>% 
   ggplot(aes(x = creat_date, y = ctLang)) +
   geom_line() + 
   facet_wrap(vars(language)) + 
   ggtitle("Works over time, top non-English languages")  
+
+# Cumulative works per language, same plot
+ct_lang %>% 
+  filter(language != "en") %>% 
+  ggplot(aes(x = creat_date, y = ctLang)) +
+  geom_line(aes(color = language)) + 
+  scale_y_log10() +
+  ggtitle("Works over time, top non-English languages")  
+
 
 
 ## BELOW NOT COMPLETE
