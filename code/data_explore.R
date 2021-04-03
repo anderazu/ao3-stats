@@ -139,16 +139,52 @@ ct_lang %>%
 
 
 
-## BELOW NOT COMPLETE
-
 ## Tags
+
+(load("data/tags.Rda"))
+
+tags_raw <- tags
+
+# What are the most common tags?
+tags %>% arrange(desc(cached_count))
+
+# How many tags are unique (no merger ID)?(76%)
+tags %>% count(is.na(merger_id)) %>% 
+  rename(unique = contains("na")) %>% 
+  mutate(frac = n / nrow(tags))
+
+# How many aren't used at all? (about 9%)
+tags %>% 
+  filter(cached_count == 0) %>% 
+  tally() %>% 
+  mutate(frac = n / nrow(tags))
+
+# Frequency plot
+tags %>% ggplot(aes(x = cached_count)) + 
+  geom_histogram(bins = 50) + 
+  scale_y_log10() + 
+  scale_x_log10() +
+  ggtitle("Frequency of tag use")
+
+
+# How many Redacted tags?
+tags <- tags_raw %>% 
+  mutate(redacted = (name == "Redacted")) 
+
+tags %>% 
+  group_by(redacted) %>% 
+  add_count() %>% 
+  summarize(cached_count = sum(cached_count), n = n()) %>% 
+  mutate(cachefrac = cached_count / sum(cached_count),
+         nfrac = n / nrow(tags))
+
 
 # How many of different ratings?
 tags %>% filter(type == "Rating") %>% 
-  select(name, cached_count)
+  select(name, cached_count) %>% 
+  mutate(frac = cached_count / nrow(tags)) 
 
 
-
-# Currently unused
-tags %>% filter(type == "Rating")  # Two labels for Teen, will need to fix that
-
+# How many of different media types?
+tags %>% 
+  filter(type == "Media")  # this is way fewer than I expected...
