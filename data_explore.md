@@ -17,7 +17,7 @@ Before this file, I ran `data_import_save.R`, which does minimal cleaning on the
 
 ### Number of works posted by date
 
-First, I was curious about the works posted over time, as a whole and then by restricted and completed status. There are \Sexpr{nrow(works)} works listed in the file.
+First, I was curious about the works posted over time, as a whole and then by restricted and completed status. There are 7269693 works listed in the file.
 
 ![](data_explore_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
