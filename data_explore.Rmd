@@ -26,14 +26,14 @@ works_raw <- works
 
 First, I was curious about the works posted over time, as a whole and then by restricted and completed status. There are 7269693 works listed in the file.
 
-```{r, message=FALSE}
+```{r works-hist, message=FALSE}
 works %>% ggplot(mapping = aes(x = creat_date)) +
   geom_histogram()
 ```
 
 By complete/incomplete, the numbers are:
 
-```{r, echo=FALSE, message=FALSE}
+```{r works-hist-complete, echo=FALSE, message=FALSE}
 works %>% 
   count(complete) %>% 
   mutate(frac = n / nrow(works))
@@ -46,7 +46,7 @@ works %>% ggplot(mapping = aes(x = creat_date)) +
 
 By restricted/unrestricted (here, plotting fraction of works rather than raw number, or the restricted data gets totally squashed)
 
-```{r, echo=FALSE, message=FALSE}
+```{r works-hist-restrict, echo=FALSE, message=FALSE}
 works %>% 
   count(complete) %>% 
   mutate(frac = n / nrow(works))
@@ -80,7 +80,7 @@ works
 
 The cumulative plot of all works over time looks like this. Second version was to see how exponential it was (answer: meh). 
 
-```{r}
+```{r works-cumulative}
 ct_all <- works %>% 
   group_by(creat_date) %>% 
   summarize(ctAll = max(ctAll))   
@@ -99,7 +99,7 @@ ct_all %>% ggplot(aes(x = creat_date, y = ctAll)) +
 
 Then repeat, breaking out by complete/incomplete: 
 
-```{r, message=FALSE}
+```{r works-cumulative-complete, message=FALSE}
 ct_complete <- works %>% 
   group_by(creat_date, complete) %>% 
   summarize(ctComplete = max(ctComplete))
@@ -113,7 +113,7 @@ ct_complete %>%
 
 And restricted/unrestricted: 
 
-```{r, message=FALSE}
+```{r works-cumulative-restrict, message=FALSE}
 ct_restrict <- works %>% 
   group_by(creat_date, restricted) %>% 
   summarize(ctRestrict = max(ctRestrict)) 
@@ -130,7 +130,7 @@ ct_restrict %>%
 
 Just plotting work frequency by language isn't super helpful, because English is too common. 
 
-```{r}
+```{r language-freq}
 works %>% 
   count(language) %>% 
   ggplot(aes(x = language, y = n)) + geom_col()
@@ -138,7 +138,7 @@ works %>%
 
 If you filter that away, the axis labels are still hard to read. There are 87 different languages represented! Here, I set an arbitrary threshold of at least 50 works to display.
 
-```{r}
+```{r language-freq-noen}
 # Axis labels hard to read without filtering for frequency
 works %>% 
   count(language) %>% 
@@ -150,7 +150,7 @@ works %>%
 
 Next, I was curious about development over time. First, filter down to the most frequent languages, excluding English: 
 
-```{r, message=FALSE}
+```{r language-time, message=FALSE}
 top_lang <- works %>% 
   #filter(language != "en") %>% 
   count(language) %>% 
@@ -169,7 +169,7 @@ ct_lang <- works %>%
 
 I cut off at 10 because it's a round number, but it also turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
 
-```{r}
+```{r language-time-compare}
 ct_lang %>% 
   filter(language != "en") %>% 
   ggplot(aes(x = creat_date, y = ctLang)) +
@@ -270,7 +270,7 @@ Just under 10% of tags have a `cached_count` of zero. I'm not sure this is actua
 
 Next: What does the overall frequency distribution look like? (The answer is "one enormo spike" on the linear scale, so let's look at log-log.)
 
-```{r, warning=FALSE}
+```{r tag-freq, warning=FALSE}
 tags %>% ggplot(aes(x = cached_count)) + 
   geom_histogram(bins = 50) + 
   scale_y_log10() + 

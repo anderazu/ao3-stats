@@ -19,7 +19,7 @@ Before this file, I ran `data_import_save.R`, which does minimal cleaning on the
 
 First, I was curious about the works posted over time, as a whole and then by restricted and completed status. There are 7269693 works listed in the file.
 
-![](data_explore_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+![](data_explore_files/figure-html/works-hist-1.png)<!-- -->
 
 By complete/incomplete, the numbers are:
 
@@ -32,7 +32,7 @@ By complete/incomplete, the numbers are:
 ## 2 TRUE     6111220 0.841
 ```
 
-![](data_explore_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](data_explore_files/figure-html/works-hist-complete-1.png)<!-- -->
 
 By restricted/unrestricted (here, plotting fraction of works rather than raw number, or the restricted data gets totally squashed)
 
@@ -45,7 +45,7 @@ By restricted/unrestricted (here, plotting fraction of works rather than raw num
 ## 2 TRUE     6111220 0.841
 ```
 
-![](data_explore_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](data_explore_files/figure-html/works-hist-restrict-1.png)<!-- -->
 
 Slightly interesting that restricted works don't seem to increase at the same rate. Maybe the pandemic makes people less shy? Who knows. 
 
@@ -74,26 +74,26 @@ Next, I'm curious how the total evolved over time. This is easier if I start by 
 
 The cumulative plot of all works over time looks like this. Second version was to see how exponential it was (answer: meh). 
 
-![](data_explore_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](data_explore_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](data_explore_files/figure-html/works-cumulative-1.png)<!-- -->![](data_explore_files/figure-html/works-cumulative-2.png)<!-- -->
 
 Then repeat, breaking out by complete/incomplete: 
 
-![](data_explore_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](data_explore_files/figure-html/works-cumulative-complete-1.png)<!-- -->
 
 And restricted/unrestricted: 
 
-![](data_explore_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](data_explore_files/figure-html/works-cumulative-restrict-1.png)<!-- -->
 
 
 ## Language frequency
 
 Just plotting work frequency by language isn't super helpful, because English is too common. 
 
-![](data_explore_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](data_explore_files/figure-html/language-freq-1.png)<!-- -->
 
 If you filter that away, the axis labels are still hard to read. There are 87 different languages represented! Here, I set an arbitrary threshold of at least 50 works to display.
 
-![](data_explore_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](data_explore_files/figure-html/language-freq-noen-1.png)<!-- -->
 
 Next, I was curious about development over time. First, filter down to the most frequent languages, excluding English: 
 
@@ -116,11 +116,11 @@ Next, I was curious about development over time. First, filter down to the most 
 
 I cut off at 10 because it's a round number, but it also turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
 
-![](data_explore_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](data_explore_files/figure-html/language-time-compare-1.png)<!-- -->
 
 The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works. To get a slightly better look at that and how it compares to the other growth rates, let's try one more: 
 
-![](data_explore_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](data_explore_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 The Chinese-language section has been growing faster than many other languages for a bit, starting around 2012 and with another change for the steeper around 2018-2019. 
 
@@ -239,7 +239,7 @@ Just under 10% of tags have a `cached_count` of zero. I'm not sure this is actua
 
 Next: What does the overall frequency distribution look like? (The answer is "one enormo spike" on the linear scale, so let's look at log-log.)
 
-![](data_explore_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
+![](data_explore_files/figure-html/tag-freq-1.png)<!-- -->
 
 This looks pretty power-law-ish. Most of the tags, more than ten million of them, are used only once (or at least have a `cached_count` of 1). At the other extreme, a handful of tags show up millions of times.
 
