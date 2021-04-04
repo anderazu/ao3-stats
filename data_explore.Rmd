@@ -15,12 +15,12 @@ library(ggplot2)
 
 Before this file, I ran `data_import_save.R`, which does minimal cleaning on the original CSV files and then exports them into `.Rda` format (loads faster, takes less disk space). 
 
-```{r cars}
+```{r}
 load("data/works.Rda")
 works_raw <- works
 ```
 
-## Basic initial plots
+## Basic initial plots - Works
 
 ### Number of works posted by date
 
@@ -190,3 +190,76 @@ ct_lang %>%
 ```
 
 The Chinese-language section has been growing faster than many other languages for a bit, starting around 2012 and with another change for the steeper around 2018-2019. 
+
+
+## First look - Tags
+
+Now pull in the tags data set and take a look at the most common ones. 
+
+```{r}
+load("data/tags.Rda")
+tags_raw <- tags
+
+tags %>% arrange(desc(cached_count))
+```
+
+Not a surprise that the most common ones are from big categories (archive warnings, ratings, relationship categories). I am amused that Fluff made the top list, though. Makes me wonder if it or any other tags became notably more popular in 2020. 
+
+
+### Tag type frequency
+
+Other than the most popular, there are some big categories that I don't really have a sense of the shape of: 
+
+* How many tags are unique (vs. having a merger ID)
+* How many are listed but not actually used
+* What the overall frequency distribution looks like
+* How much of the list is Redacted (low-frequency tags, whose names aren't listed)
+* How common different rating tags and media types are
+
+Going from the top, any tag row that has a `merger_id` is not a unique tag, but a different listing for an already-existing tag. For example:
+
+```{r}
+tags %>% 
+  filter(!is.na(merger_id)) %>% 
+  slice_head(n = 5)
+```
+
+Tag 29 (Sam Winchester/Dean Winchester) is merged to tag 35 (Dean Winchester/Sam Winchester), the canonical version. I think this might mean canonical tags won't have a `merger_id`? But I can check that. First, the overall prevalence of unique vs. merged tags: 
+
+```{r}
+tags %>% count(is.na(merger_id)) %>% 
+  rename(unique = contains("na")) %>% 
+  mutate(frac = n / nrow(tags))
+```
+
+About 24% of the tag database is duplicate entries--different spellings or wordings that link back to the same tag. As to my question about if `merger_id` implies that `canonical == FALSE`: 
+
+```{r}
+tags %>% 
+  count(is.na(merger_id), canonical) %>% 
+  rename(unique = contains("na")) %>% 
+  arrange(desc(unique))
+```
+
+So... not quite, actually! There are a few canonical tags that still point to a merger. Taking a quick look...
+
+```{r}
+tags %>% 
+  filter(!is.na(merger_id), canonical == TRUE) %>% 
+  slice_head(n = 5)
+```
+
+And then retrieving the first couple to see what they point to:
+
+```{r}
+tags %>% filter(id == 87022 | id == 514794)
+```
+
+At least in those two cases, both the "base" tag and the one with a `merger_id` are canonical. 
+
+Anyway, moving along to my second question: How many are listed but not actually used?
+
+
+* What the overall frequency distribution looks like
+* How much of the list is Redacted (low-frequency tags, whose names aren't listed)
+* How common different rating tags and media types are

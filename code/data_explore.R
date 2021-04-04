@@ -153,6 +153,18 @@ tags %>% count(is.na(merger_id)) %>%
   rename(unique = contains("na")) %>% 
   mutate(frac = n / nrow(tags))
 
+# Are all canonical tags non-mergered? (nope)
+tags %>% 
+  filter(!is.na(merger_id)) %>% 
+  count(canonical)
+
+# Combine those two queries
+tags %>% 
+  count(is.na(merger_id), canonical) %>% 
+  rename(unique = contains("na")) %>% 
+  arrange(desc(unique))
+
+
 # How many aren't used at all? (about 9%)
 tags %>% 
   filter(cached_count == 0) %>% 
