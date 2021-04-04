@@ -138,6 +138,33 @@ ct_lang %>%
   ggtitle("Works over time, top non-English languages")  
 
 
+## Word count
+
+# Top and bottom of the distribution
+works %>% 
+  count(word_count) %>% 
+  slice_head(n = 5)
+
+works %>% 
+  count(word_count) %>% 
+  slice_tail(n = 5)
+
+
+# Frequency plot: Semilog
+works %>% 
+  ggplot(aes(x = word_count)) + 
+  geom_histogram(bins = 25) + 
+  scale_y_log10() +
+  ggtitle("Word count frequency")
+
+# Frequency plot: Log-log
+works %>% 
+  ggplot(aes(x = word_count)) + 
+  geom_histogram(bins = 40) + 
+  scale_y_log10() + 
+  scale_x_log10() + 
+  ggtitle("Word count frequency")
+
 
 ## Tags
 

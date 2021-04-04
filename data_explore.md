@@ -125,6 +125,45 @@ The really visible thing here is the big jump, ramping up a few years ago, in th
 The Chinese-language section has been growing faster than many other languages for a bit, starting around 2012 and with another change for the steeper around 2018-2019. 
 
 
+## Word count
+
+There's also a column for word count, so let's take a look there. First, the top and bottom of the frequency distribution for word counts: 
+
+
+```
+## # A tibble: 5 x 2
+##   word_count     n
+##        <dbl> <int>
+## 1          0 47098
+## 2          1  1132
+## 3          2  2204
+## 4          3  1918
+## 5          4  2347
+```
+
+```
+## # A tibble: 5 x 2
+##   word_count     n
+##        <dbl> <int>
+## 1    3817471     1
+## 2    4332910     1
+## 3    4796066     1
+## 4    5078036     1
+## 5         NA  2268
+```
+
+I am so curious what the thousands of works with only one, two, etc. words are. Maybe artwork that's been posted? Also curious why some works are rendered as `NA` wordcount rather than zero. 
+
+That said, let's check out the frequency plots. Like tags below, it's not really useful to look at this on a linear scale, because the low-number spike just swamps everything else. So first, log-y:
+
+![](data_explore_files/figure-html/word-count-freq-1.png)<!-- -->
+
+Most works are on the short end of the scale, but note the x-axis--"short" means less than a million words here. Which is not what most people mean by that word, so let's take a look at the log-log plot:
+
+![](data_explore_files/figure-html/word-count-freq2-1.png)<!-- -->
+Okay. Tens of thousands of works (about 64K) have ten words or fewer. But the most popular band, more than half of the total works, lies between 1000-7000 words. Things taper off slowly after that, then decline more steeply above 100K words, with around 150 works breaking the million-words mark. 
+
+
 ## First look - Tags
 
 Now pull in the tags data set and take a look at the most common ones. 
