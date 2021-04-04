@@ -241,7 +241,7 @@ tags %>%
   arrange(desc(unique))
 ```
 
-So... not quite, actually! There are a few canonical tags that still point to a merger. Taking a quick look...
+So... not quite, actually! There are 51 canonical tags that still point to a merger. Taking a quick look...
 
 ```{r}
 tags %>% 
@@ -259,7 +259,57 @@ At least in those two cases, both the "base" tag and the one with a `merger_id` 
 
 Anyway, moving along to my second question: How many are listed but not actually used?
 
+```{r}
+tags %>% 
+  filter(cached_count == 0) %>% 
+  tally() %>% 
+  mutate(frac = n / nrow(tags))
+```
 
-* What the overall frequency distribution looks like
-* How much of the list is Redacted (low-frequency tags, whose names aren't listed)
-* How common different rating tags and media types are
+Just under 10% of tags have a `cached_count` of zero. I'm not sure this is actually the same as never being used (see below), and will have to see what happens when I process the tags listing column of the `works` frame.
+
+Next: What does the overall frequency distribution look like? (The answer is "one enormo spike" on the linear scale, so let's look at log-log.)
+
+```{r, warning=FALSE}
+tags %>% ggplot(aes(x = cached_count)) + 
+  geom_histogram(bins = 50) + 
+  scale_y_log10() + 
+  scale_x_log10() +
+  ggtitle("Frequency of tag use")
+```
+
+This looks pretty power-law-ish. Most of the tags, more than ten million of them, are used only once (or at least have a `cached_count` of 1). At the other extreme, a handful of tags show up millions of times.
+
+
+Next question: How much of the list is Redacted (low-frequency tags, whose names aren't listed)? There are at least two ways to ask this--how many of those tags exist, and how commonly they show up in works. Below, the first question is tabulated in `n`, and the second in `cached_count`. 
+
+```{r}
+tags %>% 
+  mutate(redacted = (name == "Redacted")) %>%   # not sure I want to keep this
+  group_by(redacted) %>% 
+  add_count() %>% 
+  summarize(cached_count = sum(cached_count), n = n()) %>% 
+  mutate(cachefrac = cached_count / sum(cached_count),
+         nfrac = n / nrow(tags))
+```
+The last two columns convert those numbers to a fraction of the total. So redacted (low-use) tags are prolific, almost 90% of the total tag list, which seems plausible if I think about how many tumblr-style one-off notes appear that way. But 90% of the cached count comes from non-redacted AKA higher-frequency tags. And there is a single tag with an `NA` for a name, and 708 uses. Huh. 
+
+
+Next: How common are different rating tags and media types? Ratings first...
+
+```{r}
+tags %>% filter(type == "Rating") %>% 
+  select(name, cached_count) %>% 
+  mutate(frac = cached_count / sum(cached_count)) 
+
+```
+
+Mostly General and Teen, which surprised me a bit but probably shouldn't. So much conversation focuses around the explicit end of the rating scale, it's easy to forget that it's only about a sixth of the material. Now, looking at media types:
+
+```{r}
+tags %>% 
+  filter(type == "Media")  # this is way fewer than I expected...
+
+```
+
+Here, something seems fishy. Either I'm misunderstanding what `cached_count` means, or I don't understand how the Media tag type gets applied, because I expected *much* higher counts. I'll need to come back to this once I'm combining the works and tags frames. 
