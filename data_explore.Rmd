@@ -150,7 +150,7 @@ works %>%
 
 Next, I was curious about development over time. First, filter down to the most frequent languages, excluding English: 
 
-```{r language-time, message=FALSE}
+```{r, message=FALSE}
 top_lang <- works %>% 
   #filter(language != "en") %>% 
   count(language) %>% 
@@ -169,7 +169,7 @@ ct_lang <- works %>%
 
 I cut off at 10 because it's a round number, but it also turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
 
-```{r language-time-compare}
+```{r language-time}
 ct_lang %>% 
   filter(language != "en") %>% 
   ggplot(aes(x = creat_date, y = ctLang)) +
@@ -180,7 +180,7 @@ ct_lang %>%
 
 The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works. To get a slightly better look at that and how it compares to the other growth rates, let's try one more: 
 
-```{r}
+```{r language-time-compare2}
 ct_lang %>% 
   filter(language != "en") %>% 
   ggplot(aes(x = creat_date, y = ctLang)) +

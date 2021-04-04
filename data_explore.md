@@ -116,11 +116,11 @@ Next, I was curious about development over time. First, filter down to the most 
 
 I cut off at 10 because it's a round number, but it also turns out there's a natural breakpoint--the next most frequent after Polish (14261 works) is Turkish, with substantially fewer (2984) works. 
 
-![](data_explore_files/figure-html/language-time-compare-1.png)<!-- -->
+![](data_explore_files/figure-html/language-time-1.png)<!-- -->
 
 The really visible thing here is the big jump, ramping up a few years ago, in the frequency of Chinese-language (`zh`) works. To get a slightly better look at that and how it compares to the other growth rates, let's try one more: 
 
-![](data_explore_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](data_explore_files/figure-html/language-time-compare2-1.png)<!-- -->
 
 The Chinese-language section has been growing faster than many other languages for a bit, starting around 2012 and with another change for the steeper around 2018-2019. 
 
