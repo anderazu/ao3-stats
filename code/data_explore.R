@@ -173,17 +173,19 @@ tags %>%
 
 # Frequency plot
 tags %>% ggplot(aes(x = cached_count)) + 
-  geom_histogram(bins = 50) + 
+  geom_histogram(bins = 50) +
+  #geom_histogram(aes(y = ..density..), bins = 50) +   # displays funky
   scale_y_log10() + 
   scale_x_log10() +
   ggtitle("Frequency of tag use")
 
 
 # How many Redacted tags?
-tags <- tags_raw %>% 
-  mutate(redacted = (name == "Redacted")) 
+#tags <- tags_raw %>% 
+#  mutate(redacted = (name == "Redacted")) 
 
 tags %>% 
+  mutate(redacted = (name == "Redacted")) %>%   # not sure I want to keep this
   group_by(redacted) %>% 
   add_count() %>% 
   summarize(cached_count = sum(cached_count), n = n()) %>% 
@@ -194,7 +196,7 @@ tags %>%
 # How many of different ratings?
 tags %>% filter(type == "Rating") %>% 
   select(name, cached_count) %>% 
-  mutate(frac = cached_count / nrow(tags)) 
+  mutate(frac = cached_count / sum(cached_count)) 
 
 
 # How many of different media types?
