@@ -16,5 +16,16 @@ works <- works %>% select(-X7)
 
 
 # Save them to .Rda files (individually because huge)
-save(tags, file = "tags.Rda")
-save(works, file = "works.Rda")
+save(tags, file = "data/tags.Rda")
+save(works, file = "data/works.Rda")
+
+
+# Save first 100 lines of each to CSV and RDA (for test-driving code)
+work_samp <- works %>% slice_head(n = 100)
+tag_samp <- tags %>% slice_head(n = 100)
+
+write_csv(work_samp, file = "data/work_samp.csv")
+write_csv(tag_samp, file = "data/tag_samp.csv")
+
+save(work_samp, file = "data/work_samp.Rda")
+save(tag_samp, file = "data/tag_samp.Rda")
