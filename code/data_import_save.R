@@ -1,6 +1,10 @@
 # Import the works and tags .csv files, do a bit of preliminary cleanup, and 
 # save as .Rda files for further processing.
 
+# 10 Apr 2021: Reorder works oldest -> newest and add id column. I was doing
+#   this everywhere else anyway, or confusing myself because I thought I had.
+
+
 library(tidyverse)
 
 # Import data
@@ -8,12 +12,22 @@ tags <- read_csv("data/tags-20210226.csv")
 works <- read_csv("data/works-20210226.csv")
 
 
+## Cleanup of data columns
+
 # Spaces in column names are annoying, ditch that
 names(works)[1] <- "creat_date"
 
 # Remove column of NAs (made by extra comma at end of header row)
 works <- works %>% select(-X7)
 
+# Reorder from oldest -> newest and add column for work id
+works <- works %>% 
+  arrange(desc(row_number())) %>%   # invert rows first to count up
+  mutate(wid = row_number()) %>% 
+  select(creat_date, wid, everything())
+
+
+## Save files for later use
 
 # Save them to .Rda files (individually because huge)
 save(tags, file = "data/tags.Rda")
