@@ -54,7 +54,12 @@ bipartite_projection_size(gb_rel)
 
 ptm <- proc.time()
 g_rel <- bipartite_projection(gb_rel)[[1]]
-(proc.time() - ptm)   # about 27 seconds
+(proc.time() - ptm)   # about 30 seconds
 
-# Match in tag labels (PICK UP HERE)
-vertex_attr(gb_rel, "label") <- 
+# Match in tag labels (not working yet, matches in whole vector)
+vertex_attr(g_rel, "label") <- df_rel[match(V(g_rel)$name, df_rel$tag_list), 
+                                      "name"]
+
+ptm <- proc.time()
+plot(g_rel, vertex.size = 7, vertex.label = V(g_rel)$label)
+(proc.time() - ptm)   # 
