@@ -44,10 +44,10 @@ wred <- wdf %>%
 
 
 # Convert tags values to list-column, then unnest into long data frame
-wred <- wred %>% 
+wlist <- wred %>% 
   mutate(tag_list = stringr::str_split(.data$tags, stringr::fixed("+")))
 
-wlong <- wred %>% 
+wlong <- wlist %>% 
   unnest(tag_list) %>% 
   mutate(tag_list = as.integer(tag_list)) %>% 
   select(-tags)
@@ -57,3 +57,4 @@ wtagged <- wlong %>%
   left_join(tdf %>% select(id, type, name), 
             by = c("tag_list" = "id"))
 
+save(wred, wtagged, file = "data/works_RWBY.Rda")
