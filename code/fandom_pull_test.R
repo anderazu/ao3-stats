@@ -82,3 +82,9 @@ wtagged <- wlong %>%
   left_join(tdf %>% select(id, type, name), 
             by = c("tag_list" = "id")) %>% 
   select(-tags)
+
+# Check for unmatched tags
+wtagged %>% 
+  mutate(mismatch = is.na(name)) %>% 
+  group_by(mismatch) %>% 
+  count()

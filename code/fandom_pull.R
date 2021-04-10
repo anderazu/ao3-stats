@@ -46,9 +46,16 @@ wlong <- wlist %>%
   mutate(tag_list = as.integer(tag_list)) %>% 
   select(-tags)
 
-# Add tag names to long data frame
+# 2. Add tag names to long data frame
 wtagged <- wlong %>% 
   left_join(tdf %>% select(id, type, name), 
             by = c("tag_list" = "id"))
+
+# Check: Any tags I couldn't match?
+wtagged %>% 
+  mutate(mismatch = is.na(name)) %>% 
+  group_by(mismatch) %>% 
+  count()
+
 
 save(wred, wtagged, file = "data/works_RWBY.Rda")
