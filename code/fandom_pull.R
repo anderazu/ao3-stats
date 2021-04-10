@@ -12,12 +12,6 @@ library(ggplot2)
 tdf <- tags
 wdf <- works
 
-# Add column for work id
-wdf <- wdf %>% 
-  arrange(desc(row_number())) %>%   # invert rows first to count up
-  mutate(wid = row_number()) %>% 
-  select(creat_date, wid, everything())
-
 
 ## Helper functions first: Need to look up a tag id and find it in a string
 

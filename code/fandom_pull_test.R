@@ -2,7 +2,6 @@
 
 
 library(tidyverse)
-library(ggplot2)
 
 
 # Import data
@@ -14,7 +13,7 @@ wdf <- work_samp
 
 # See what fandom(s) are available to try
 fandoms <- tdf %>% filter(type == "Fandom") 
-ftags <- fandoms %>% select(id, name, merger_id)
+(ftags <- fandoms %>% select(id, name, merger_id))
 
 
 ## Pick one (hello, Supernatural) and filter works for those entries
@@ -42,7 +41,7 @@ makePat <- function(x) {
 }
 
 # Test on a sequence of IDs
-tagpats <- map_chr(tdf$id, makePat)
+(tagpats <- map_chr(tdf$id, makePat))
 
 
 # Function to find tag number for a given name
@@ -66,12 +65,7 @@ wred$tag_list
 # Unnest to make long data frame
 wred %>% unnest(tag_list)
 
-# Before saving this, add a column for work number
-wred2 <- wred %>% 
-  mutate(wid = row_number()) %>% 
-  select(creat_date, wid, everything())
-
-wlong <- wred2 %>% 
+wlong <- wred %>% 
   unnest(tag_list) %>% 
   mutate(tag_list = as.integer(tag_list))
 
