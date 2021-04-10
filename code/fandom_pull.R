@@ -57,5 +57,29 @@ wtagged %>%
   group_by(mismatch) %>% 
   count()
 
+# Inspect any rows without a tag match
+wtagged %>% 
+  mutate(mismatch = is.na(name)) %>% 
+  filter(mismatch) 
 
+# Example
+tags %>% filter(id > 54605320)
+
+
+## Filter tags to in-use list
+
+# Pull in-use tags from filtered works frame
+tags_used <- wlong %>% 
+  select(tag_list) %>% 
+  distinct() %>% 
+  arrange(tag_list)
+
+# Match tags frame info to each in-use tag
+tred <- tags_used %>% 
+  left_join(tags, by = c("tag_list" = "id")) %>% 
+  rename(id = tag_list)
+
+
+# Save filtered data frames
+save(tred, file = "data/tags_RWBY.Rda")
 save(wred, wtagged, file = "data/works_RWBY.Rda")
