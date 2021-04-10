@@ -1,0 +1,168 @@
+---
+title: "Workflow to merge works/tags info for a fandom"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+For most questions that interest me, I need to merge information from the tags and works databases. Here's a workflow for doing that, after a few hours and a short stint in regex purgatory. I'm using the example of pulling all info for a particular fandom, but it could just as easily be all Teen-rated works, everything associated with video games, or whatever.
+
+
+## Import data
+
+Before this file, I ran `data_import_save.R`, which does minimal cleaning on the original CSV files and then exports them into `.Rda` format. This includes reordering works to go from oldest to newest and adding an ID number column (`wid`).
+
+```{r}
+load("data/works.Rda")
+load("data/tags.Rda")
+```
+
+Peek at the top of each:
+
+```{r}
+works
+tags
+```
+
+
+## Helper functions
+
+Two tasks I'll need: Find the tag ID number associated with a given name in the `tags` frame, and find all rows containing a given tag ID in the `works` frame. 
+
+```{r}
+# Regex to match: Start of line OR non-digit, tag, non-digit OR end of line
+makePat <- function(x) {
+  pat <- paste0("(^|[^[:digit:]])", x, "([^[:digit:]]|$)") 
+}
+
+# Find tag number for a given name
+getTagID <- function(x, df = tags) {
+  df %>% filter(name == x) %>% pull(var = id)
+}
+
+getTagID("RWBY")
+```
+
+
+## Pick a fandom and filter `works` for it
+
+At the end of this process, I'd like three outputs: 
+
+1. The fandom-specific subset of the `works` frame, otherwise in its original format. 
+
+2. A long data frame version of 1, with one tag per row. 
+
+3. The tag list filtered down to contain only tags appearing in 1 and 2.
+
+
+### Filter the `works` frame
+
+Start by pulling the row(s) for a given tag.
+
+```{r}
+tagpat <- makePat(getTagID("RWBY"))
+
+wred <- works %>% 
+  filter(grepl(pattern = tagpat, x = tags))
+
+wred
+```
+
+We're now down to about 26K works, a respectable but not overwhelming fraction of the data set. 
+
+
+### Make a long `works` data frame
+
+Next, unroll the tag column into a long data frame, by way of a list-column.
+
+```{r}
+wlist <- wred %>% 
+  mutate(tag_list = stringr::str_split(.data$tags, stringr::fixed("+")))
+
+wlong <- wlist %>% 
+  unnest(tag_list) %>% 
+  mutate(tag_list = as.integer(tag_list)) %>% 
+  select(-tags)
+
+wlist
+wlong
+```
+
+In the long data frame (`wlong`), I've dropped the original `tags` column, which holds the character string of tag IDs separated by + symbols. It's still there in the `wred` frame, but it's not useful and hurts readability to repeat it every row of `wlong`. 
+
+Finally, for ease of reading I want to attach tag names to my long works frame. Might as well add tag type while I'm in the neighborhood. 
+
+```{r}
+wtagged <- wlong %>% 
+  left_join(tags %>% select(id, type, name), 
+            by = c("tag_list" = "id"))
+
+wtagged
+```
+
+Check: Are any of these tags missing a match in the `tags` frame?
+
+```{r}
+wtagged %>% 
+  mutate(mismatch = is.na(name)) %>% 
+  group_by(mismatch) %>% 
+  count()
+
+# Inspect any rows without a tag match
+wtagged %>% 
+  mutate(mismatch = is.na(name)) %>% 
+  filter(mismatch) 
+```
+
+Nine of my rows came up with `NA` for a tag name. Looking at the first of them, 54605328:
+
+```{r}
+tags %>% filter(id > 54605320)
+```
+
+There are a number of skipped `id` values, and this `NA` from my matched RWBY tags is one of them. To be really careful I'd check them all, but for the moment I'll assume those represent deleted tag entries. 
+
+
+## Filter the `tags` frame to in-use entries
+
+There are 14.5 million tags and many of them don't apply to this subset of works, so I also want to cut down the `tags` frame to its corresponding subset. 
+
+After everything above, this goes pretty fast. Pull in-use tags from filtered works frame:
+
+```{r}
+tags_used <- wlong %>% 
+  select(tag_list) %>% 
+  distinct() %>% 
+  arrange(tag_list)
+
+tags_used
+```
+
+Then join tags frame info to each in-use tag:
+
+```{r}
+tred <- tags_used %>% 
+  left_join(tags, by = c("tag_list" = "id")) %>% 
+  rename(id = tag_list)
+
+tred
+```
+
+And we're done, unless I find a bug later.
+
+
+## Save data
+
+Even though the data frames are a much more manageable size now, I'll keep saving the tags and works info in separate files. For works, I'll keep both the subsetted-but-wide-format `wred`, and the one-row-per-tag `wtagged`. 
+
+```{r}
+#save(tred, file = "data/tags_RWBY.Rda")
+#save(wred, wtagged, file = "data/works_RWBY.Rda")
+```
+
