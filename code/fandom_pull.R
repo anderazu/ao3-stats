@@ -2,7 +2,6 @@
 
 
 library(tidyverse)
-library(ggplot2)
 
 
 # Import data
@@ -78,6 +77,38 @@ tags_used <- wlong %>%
 tred <- tags_used %>% 
   left_join(tags, by = c("tag_list" = "id")) %>% 
   rename(id = tag_list)
+
+
+## Merge duplicate tags in works list
+
+# 1. Subset edge data frame by whether rows need merging
+temp1 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(is.na(merger_id)) %>%   # if merger_id = NA, no merge needed
+  select(-merger_id)
+
+temp2 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(!is.na(merger_id))      # non-NA merger_id, need to merge
+
+# 2. For frame of duplicated tags, replace with merged ID and name
+temp2 <- temp2 %>% 
+  select(-tag_list) %>%   
+  left_join(tred %>% select(id, name), 
+            by = c("merger_id" = "id")) %>%  # pull in merged names and tags
+  rename(tag_list = merger_id, 
+         name = name.y) %>%   # align names with df_rel
+  select(-name.x) %>%    # remove old name and tag ID
+  relocate(tag_list, .before = type)  # align column order with wtagged
+
+# 3. Recombine frames into new, merged works list
+wmerged <- bind_rows(temp1, temp2) %>% 
+  arrange(wid)
+
+rm(temp1, temp2) # clean up temp objects
+
 
 
 # Save filtered data frames
