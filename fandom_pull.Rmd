@@ -157,6 +157,58 @@ tred
 And we're done, unless I find a bug later.
 
 
+## Merge duplicate tags
+
+### In the works list
+
+In the `tags` and `tred` frames above, the `merger_id` column has a number if that tag actually points back to an already-existing tag. I also want to save data frames that have those duplicate entries merged, and I need to do this in both the `works` and `tags` frames.
+
+I'm not claiming this is the *elegant* way to do this, but it works. 
+
+I start with the tagged works list, and split it into two temp frames--one with all the rows that don't tie to merger IDs, and one with all the rows that do. 
+
+```{r}
+# 1. Subset works frame by whether rows need merging
+temp1 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(is.na(merger_id)) %>%   # if merger_id = NA, no merge needed
+  select(-merger_id)
+
+temp2 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(!is.na(merger_id))      # non-NA merger_id, need to merge
+
+temp2
+```
+
+Next, take that second frame and replace the current name and tag ID with the original ones. (I keep wanting to call them the "canonical" ones, but that has a specific meaning in this data.)
+
+```{r}
+# 2. For frame of duplicated tags, replace with merged ID and name
+temp2 <- temp2 %>% 
+  select(-tag_list) %>%   # drop the current (redundant) tag number
+  left_join(tred %>% select(id, name), 
+            by = c("merger_id" = "id")) %>%  # pull in merged names and tags
+  rename(tag_list = merger_id, 
+         name = name.y) %>%   # align names with wtagged
+  select(-name.x) %>%    # remove old name and tag ID
+  relocate(tag_list, .before = type)  # align column order with wtagged
+
+temp2
+```
+
+Finally, recombine those frames into a new works frame. 
+
+```{r}
+# 3. Recombine frames into new, merged works list
+wmerged <- bind_rows(temp1, temp2) %>% 
+  arrange(wid)
+```
+
+
+
 ## Save data
 
 Even though the data frames are a much more manageable size now, I'll keep saving the tags and works info in separate files. For works, I'll keep both the subsetted-but-wide-format `wred`, and the one-row-per-tag `wtagged`. 
