@@ -110,6 +110,30 @@ wmerged <- bind_rows(temp1, temp2) %>%
 rm(temp1, temp2) # clean up temp objects
 
 
+## Merge duplicate tags in tags list
+
+# Check that tags to be merged have identical types
+tred %>% 
+  left_join(tred %>% select(-merger_id), 
+            by = c("merger_id" = "id")) %>% 
+  filter(!is.na(merger_id)) %>% 
+  mutate(type_match = type.x == type.y) %>% 
+  group_by(type_match) %>% 
+  count() %>% 
+  mutate(frac = n / nrow(tred))
+# Verdict: Usually, but not always! There are NAs, check those out.
+tred %>% 
+  left_join(tred %>% select(-merger_id), 
+            by = c("merger_id" = "id")) %>% 
+  filter(!is.na(merger_id)) %>% 
+  mutate(type_match = type.x == type.y) %>% 
+  filter(is.na(type_match)) 
+
+tags %>% filter(id == "26465")
+
+# ...Ah, shitsticks, this happens because about 5% of the tags point to IDs that 
+#  aren't in the fandom-specific tag frame. I need to do the merger on the 
+#  original huge frame for this to work.
 
 # Save filtered data frames
 save(tred, file = "data/tags_RWBY.Rda")
