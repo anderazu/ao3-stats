@@ -9,7 +9,7 @@ library(tidyverse)
 # Import data
 (load("data/work_samp.Rda"))
 
-works <- work_samp[1:20, ]
+works <- work_samp#[1:20, ]
 
 
 ## Unfold works to long data frame
@@ -87,17 +87,30 @@ sapply(wlist$tag_list, length)
 # Yep
 
 
-## Refold wtagged into wide frame
+## Refold wtagged into having tags in a single character string
 
-# Nest tags back into list column
-wtagged %>% 
+# Nest tags back into list column?
+wlong_temp <- wlong %>% 
+  group_by(wid) %>% 
+  nest(tag_list = tag_list) %>% 
+  mutate(tags = map_chr(tag_list, 
+                        ~ paste0(pull(.x), collapse = "+")))
+
+# Compare original and re-folded tags vector
+identical(wlong_temp$tags, works$tags)
+
+# Now do it with the merged tags list
+wtemp <- wtagged %>% 
   group_by(wid) %>% 
   select(-tag_name) %>% 
-  nest(tag_list = c(tag))
+  nest(tag_list = tag) %>% 
+  mutate(tags = map_chr(tag_list, 
+                        ~ paste0(pull(.x), collapse = "+"))) %>% 
+  select(-tag_list)
 
-
-# Save long tagged works frame
-save(wtagged, file = "data/works_tagged.Rda")  
-
-
-## Remake a shorter works frame with tags as a single character column?
+# Spot-check swaps
+works
+wtemp
+tags %>% filter(id == "125")
+tags %>% filter(id == "89")
+tags %>% filter(id == "714295")
