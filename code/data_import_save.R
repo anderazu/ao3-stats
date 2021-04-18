@@ -3,6 +3,8 @@
 
 # 10 Apr 2021: Reorder works oldest -> newest and add id column. I was doing
 #   this everywhere else anyway, or confusing myself because I thought I had.
+# 18 Apr 2021: Remove problems attribute from works frame (just held parse 
+#   warnings, not needed once I've cleaned up the X7 column).
 
 
 library(tidyverse)
@@ -12,15 +14,26 @@ tags <- read_csv("data/tags-20210226.csv")
 works <- read_csv("data/works-20210226.csv")
 
 
+## Check for import problems
+
+problems(tags)
+problems(works)  # parse warnings from X7 column, clean up below
+
+
 ## Cleanup of data columns
 
-# Spaces in column names are annoying, ditch that
+# 1. Spaces in column names are annoying, ditch that
 names(works)[1] <- "creat_date"
 
-# Remove column of NAs (made by extra comma at end of header row)
+# 2. Remove column of NAs (made by extra comma at end of header row)
 works <- works %>% select(-X7)
 
-# Reorder from oldest -> newest and add column for work id
+# That caused the problems attribute, so clean that up now
+object.size(works)
+attr(works, "problems") <- NULL
+object.size(works)
+
+# 3. Reorder from oldest -> newest and add column for work id
 works <- works %>% 
   arrange(desc(row_number())) %>%   # invert rows first to count up
   mutate(wid = row_number()) %>% 
