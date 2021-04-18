@@ -1,5 +1,10 @@
 # Unfold works into long data frame and do tag merger
 
+# Saves the following new files:
+# 1. works_long.Rda - One row per tag on a work, duplicate tags not merged
+# 2. works_tagged.Rda - One row per tag on a work, duplicate tags merged, column 
+#    for tag name
+# 3. works_merged.Rda - One row per work, tags in +-separated character string
 
 library(tidyverse)
 
@@ -10,7 +15,7 @@ library(tidyverse)
 
 ## Unfold works to long data frame
 
-# Solution courtesy of: 
+# Get memory errors if we run this straight. Solution courtesy of: 
 #  https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R
 if(.Platform$OS.type == "windows") withAutoprint({
   memory.size()
@@ -19,15 +24,7 @@ if(.Platform$OS.type == "windows") withAutoprint({
 })
 memory.limit(size=56000)
 
-# Fewer lines of code: separate_rows version
-#ptm <- proc.time()
-#wlong2 <- works %>% 
-#  separate_rows(tags, convert = TRUE) %>% 
-#  rename(tag_list = tags)
-#(proc.time() - ptm)   # about 8 minutes
-
-#size1 <- object.size(wlong2)
-#rm(wlong2)
+# 1. Make long data frame of works
 
 # Convert tags values to list-column, then unnest into long data frame
 ptm <- proc.time()
@@ -42,11 +39,22 @@ wlong <- works %>%
 object.size(works)
 object.size(wlong)
 
+# Fewer lines of code: separate_rows version
+#ptm <- proc.time()
+#wlong2 <- works %>% 
+#  separate_rows(tags, convert = TRUE) %>% 
+#  rename(tag_list = tags)
+#(proc.time() - ptm)   # about 8 minutes, seems to be slower
+
+#size1 <- object.size(wlong2)
+#rm(wlong2)
+
+
 # Save if changed (skip if not, this takes a minute)
 #save(wlong, file = "data/works_long.Rda")
 
 
-# 2. Merge tags in long data frame
+# 2. Merge duplicate tags in long data frame
 
 # Clean up if needed, because this is riding my memory pretty hard
 rm(works)
@@ -83,12 +91,26 @@ wtagged %>%
   mutate(mismatch = is.na(tag_name)) %>% 
   filter(mismatch) 
 
-
-# Need that memory
+# Clean up
 rm(wlong)
+rm(tags)
 
 # Save long tagged works frame
 save(wtagged, file = "data/works_tagged.Rda")  
 
 
-## Remake a shorter works frame with tags as a single character column?
+## Remake a shorter works frame with tags as a single character column
+
+ptm <- proc.time()
+works_merged <- wtagged %>% 
+  group_by(wid) %>% 
+  select(-tag_name) %>% 
+  nest(tag_list = tag) %>% 
+  mutate(tags = map_chr(tag_list, 
+                        ~ paste0(pull(.x), collapse = "+"))) %>% 
+  select(-tag_list)
+(proc.time() - ptm)  # this takes a while (didn't time yet, at least 30 min?)
+
+
+# Save tag-merged works frame
+save(works_merged, file = "data/works_merged.Rda")  
