@@ -16,11 +16,18 @@ For most questions that interest me, I need to merge information from the tags a
 
 ## Import data
 
-Before this file, I ran `data_import_save.R`, which does minimal cleaning on the original CSV files and then exports them into `.Rda` format. This includes reordering works to go from oldest to newest and adding an ID number column (`wid`).
+Before this file, I ran:
+
+1. `data_import_save.R`, which does minimal cleaning on the original CSV files and then exports them into `.Rda` format. This includes reordering works to go from oldest to newest and adding an ID number column (`wid`).
+
+2. `merge_works.R`, which replaces any duplicate tag with its "real" (`merger_id`) counterpart.
 
 ```{r}
-load("data/works.Rda")
-load("data/tags.Rda")
+(load("data/works_merged.Rda"))
+(load("data/tags.Rda"))
+
+works <- works_merged
+rm(works_merged)
 ```
 
 Peek at the top of each:
@@ -82,40 +89,39 @@ We're now down to about 26K works, a respectable but not overwhelming fraction o
 Next, unroll the tag column into a long data frame, by way of a list-column.
 
 ```{r}
-wlist <- wred %>% 
-  mutate(tag_list = stringr::str_split(.data$tags, stringr::fixed("+")))
-
-wlong <- wlist %>% 
+wlong_fandom <- wred %>% 
+  mutate(tag_list = stringr::str_split(.data$tags, 
+                                       stringr::fixed("+"))) %>% 
   unnest(tag_list) %>% 
   mutate(tag_list = as.integer(tag_list)) %>% 
   select(-tags)
 
-wlist
-wlong
+wlong_fandom
 ```
 
-In the long data frame (`wlong`), I've dropped the original `tags` column, which holds the character string of tag IDs separated by + symbols. It's still there in the `wred` frame, but it's not useful and hurts readability to repeat it every row of `wlong`. 
+In the long data frame, I've dropped the original `tags` column, which holds the character string of tag IDs separated by + symbols. It's still there in the `wred` frame, but it's not useful and hurts readability to repeat it every row of `wlong`. 
 
 Finally, for ease of reading I want to attach tag names to my long works frame. Might as well add tag type while I'm in the neighborhood. 
 
 ```{r}
-wtagged <- wlong %>% 
+wtagged_fandom <- wlong_fandom %>% 
   left_join(tags %>% select(id, type, name), 
             by = c("tag_list" = "id"))
 
-wtagged
+wtagged_fandom
 ```
 
 Check: Are any of these tags missing a match in the `tags` frame?
 
 ```{r}
-wtagged %>% 
+wtagged_fandom %>% 
   mutate(mismatch = is.na(name)) %>% 
   group_by(mismatch) %>% 
-  count()
+  count() %>% 
+  mutate(frac = n / nrow(wtagged_fandom))
 
 # Inspect any rows without a tag match
-wtagged %>% 
+wtagged_fandom %>% 
   mutate(mismatch = is.na(name)) %>% 
   filter(mismatch) 
 ```
@@ -136,7 +142,8 @@ There are 14.5 million tags and many of them don't apply to this subset of works
 After everything above, this goes pretty fast. Pull in-use tags from filtered works frame:
 
 ```{r}
-tags_used <- wlong %>% 
+tags_used <- wlong_fandom %>% 
+  ungroup() %>%   # had a wid group, might want to check back for problems there
   select(tag_list) %>% 
   distinct() %>% 
   arrange(tag_list)
@@ -154,59 +161,9 @@ tred <- tags_used %>%
 tred
 ```
 
+That's about 61K tags. When I did this the first time, without merging duplicate tags in the works list first, my filtered list of in-use tags was 74,026 entries long. So I've cut off more than 15% of my tags by cleaning up the list first. 
+
 And we're done, unless I find a bug later.
-
-
-## Merge duplicate tags
-
-### In the works list
-
-In the `tags` and `tred` frames above, the `merger_id` column has a number if that tag actually points back to an already-existing tag. I also want to save data frames that have those duplicate entries merged, and I need to do this in both the `works` and `tags` frames.
-
-I'm not claiming this is the *elegant* way to do this, but it works. 
-
-I start with the tagged works list, and split it into two temp frames--one with all the rows that don't tie to merger IDs, and one with all the rows that do. 
-
-```{r}
-# 1. Subset works frame by whether rows need merging
-temp1 <- wtagged %>% 
-  left_join(tred %>% select(id, merger_id), 
-            by = c("tag_list" = "id")) %>% 
-  filter(is.na(merger_id)) %>%   # if merger_id = NA, no merge needed
-  select(-merger_id)
-
-temp2 <- wtagged %>% 
-  left_join(tred %>% select(id, merger_id), 
-            by = c("tag_list" = "id")) %>% 
-  filter(!is.na(merger_id))      # non-NA merger_id, need to merge
-
-temp2
-```
-
-Next, take that second frame and replace the current name and tag ID with the original ones. (I keep wanting to call them the "canonical" ones, but that has a specific meaning in this data.)
-
-```{r}
-# 2. For frame of duplicated tags, replace with merged ID and name
-temp2 <- temp2 %>% 
-  select(-tag_list) %>%   # drop the current (redundant) tag number
-  left_join(tred %>% select(id, name), 
-            by = c("merger_id" = "id")) %>%  # pull in merged names and tags
-  rename(tag_list = merger_id, 
-         name = name.y) %>%   # align names with wtagged
-  select(-name.x) %>%    # remove old name and tag ID
-  relocate(tag_list, .before = type)  # align column order with wtagged
-
-temp2
-```
-
-Finally, recombine those frames into a new works frame. 
-
-```{r}
-# 3. Recombine frames into new, merged works list
-wmerged <- bind_rows(temp1, temp2) %>% 
-  arrange(wid)
-```
-
 
 
 ## Save data
@@ -215,6 +172,6 @@ Even though the data frames are a much more manageable size now, I'll keep savin
 
 ```{r}
 #save(tred, file = "data/tags_RWBY.Rda")
-#save(wred, wtagged, file = "data/works_RWBY.Rda")
+#save(wred, wtagged_fandom, file = "data/works_RWBY.Rda")
 ```
 

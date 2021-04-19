@@ -1,0 +1,78 @@
+---
+title: "Merging duplicate tags"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**This is code copied from `fandom_pull.Rmd`, where I had originally been writing up this process before realizing I wanted to move it all to a different file. That code now lives in `merge_works.R`, and I haven't gone back and reconciled this documentation yet.**
+
+## Merge duplicate tags
+
+### In the works list
+
+In the `tags` and `tred` frames above, the `merger_id` column has a number if that tag actually points back to an already-existing tag. I also want to save data frames that have those duplicate entries merged, and I need to do this in both the `works` and `tags` frames.
+
+I'm not claiming this is the *elegant* way to do this, but it works. 
+
+I start with the tagged works list, and split it into two temp frames--one with all the rows that don't tie to merger IDs, and one with all the rows that do. 
+
+```{r}
+# 1. Subset works frame by whether rows need merging
+temp1 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(is.na(merger_id)) %>%   # if merger_id = NA, no merge needed
+  select(-merger_id)
+
+temp2 <- wtagged %>% 
+  left_join(tred %>% select(id, merger_id), 
+            by = c("tag_list" = "id")) %>% 
+  filter(!is.na(merger_id))      # non-NA merger_id, need to merge
+
+temp2
+```
+
+Next, take that second frame and replace the current name and tag ID with the original ones. (I keep wanting to call them the "canonical" ones, but that has a specific meaning in this data.)
+
+```{r}
+# 2. For frame of duplicated tags, replace with merged ID and name
+temp2 <- temp2 %>% 
+  select(-tag_list) %>%   # drop the current (redundant) tag number
+  left_join(tred %>% select(id, name), 
+            by = c("merger_id" = "id")) %>%  # pull in merged names and tags
+  rename(tag_list = merger_id, 
+         name = name.y) %>%   # align names with wtagged
+  select(-name.x) %>%    # remove old name and tag ID
+  relocate(tag_list, .before = type)  # align column order with wtagged
+
+temp2
+```
+
+Finally, recombine those frames into a new works frame. 
+
+```{r}
+# 3. Recombine frames into new, merged works list
+wmerged <- bind_rows(temp1, temp2) %>% 
+  arrange(wid)
+
+# And clean up, this shit is memory intensive
+rm(temp1, temp2)
+```
+
+
+### In the tags list
+
+I now have a minor dilemma about what to do with the fandom-specific tags list `tred`. The much faster solution is to just chop off the `merger_id` column because I don't need it now. However, that would discard the `cached_count` contribution of those rows. While I'm not sure I believe those counts too much, it still rubs me the wrong way. 
+
+So, I think I'll try to do something similar to the above--split the frame, do some joining, and I suppose check along the way that all the `type` values are identical for any merging pair. 
+
+Start by splitting my reduced tags list into "original" and "redundant" frames.
+
+```{r}
+tred %>% 
+  left_join(tred %>% select(-merger_id), 
+            by = c("merger_id" = "id"))
+```

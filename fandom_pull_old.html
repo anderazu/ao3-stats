@@ -171,33 +171,24 @@ pre code {
 <p>For most questions that interest me, I need to merge information from the tags and works databases. Here’s a workflow for doing that, after a few hours and a short stint in regex purgatory. I’m using the example of pulling all info for a particular fandom, but it could just as easily be all Teen-rated works, everything associated with video games, or whatever.</p>
 <div id="import-data" class="section level2">
 <h2>Import data</h2>
-<p>Before this file, I ran:</p>
-<ol style="list-style-type: decimal">
-<li><p><code>data_import_save.R</code>, which does minimal cleaning on the original CSV files and then exports them into <code>.Rda</code> format. This includes reordering works to go from oldest to newest and adding an ID number column (<code>wid</code>).</p></li>
-<li><p><code>merge_works.R</code>, which replaces any duplicate tag with its “real” (<code>merger_id</code>) counterpart.</p></li>
-</ol>
-<pre class="r"><code>(load(&quot;data/works_merged.Rda&quot;))</code></pre>
-<pre><code>## [1] &quot;works_merged&quot;</code></pre>
-<pre class="r"><code>(load(&quot;data/tags.Rda&quot;))</code></pre>
-<pre><code>## [1] &quot;tags&quot;</code></pre>
-<pre class="r"><code>works &lt;- works_merged
-rm(works_merged)</code></pre>
+<p>Before this file, I ran <code>data_import_save.R</code>, which does minimal cleaning on the original CSV files and then exports them into <code>.Rda</code> format. This includes reordering works to go from oldest to newest and adding an ID number column (<code>wid</code>).</p>
+<pre class="r"><code>load(&quot;data/works.Rda&quot;)
+load(&quot;data/tags.Rda&quot;)</code></pre>
 <p>Peek at the top of each:</p>
 <pre class="r"><code>works</code></pre>
 <pre><code>## # A tibble: 7,269,693 x 7
-## # Groups:   wid [7,269,693]
 ##    creat_date   wid language restricted complete word_count tags                
 ##    &lt;date&gt;     &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt; &lt;chr&gt;               
-##  1 2008-09-13     1 en       FALSE      TRUE           1836 123+124+12445405+12~
-##  2 2008-09-13     2 en       FALSE      TRUE           1338 112+113+13+114+16+7~
+##  1 2008-09-13     1 en       FALSE      TRUE           1836 123+124+125+127+128~
+##  2 2008-09-13     2 en       FALSE      TRUE           1338 112+113+13+114+16+1~
 ##  3 2008-09-13     3 en       FALSE      TRUE           1755 77+78+69+108+109+62~
-##  4 2008-09-13     4 en       FALSE      TRUE           1392 78+77+103+66650+23+~
-##  5 2008-09-13     5 en       TRUE       TRUE            705 78+77+103+579599+11~
-##  6 2008-09-13     6 en       TRUE       TRUE           1583 78+77+103+579599+23~
-##  7 2008-09-13     7 en       TRUE       TRUE          30830 13+1589+23+99+16+12~
-##  8 2008-09-13     8 en       FALSE      TRUE           2482 87+88+23+11+6856+14~
-##  9 2008-09-13     9 en       FALSE      TRUE          52843 103+23+13+16+70+103~
-## 10 2008-09-13    10 en       FALSE      TRUE            733 79+5120+23143+10+16~
+##  4 2008-09-13     4 en       FALSE      TRUE           1392 78+77+84+107+23+10+~
+##  5 2008-09-13     5 en       TRUE       TRUE            705 78+77+84+101+104+10~
+##  6 2008-09-13     6 en       TRUE       TRUE           1583 78+77+84+101+23+13+~
+##  7 2008-09-13     7 en       TRUE       TRUE          30830 13+93+23+99+16+98+1~
+##  8 2008-09-13     8 en       FALSE      TRUE           2482 87+88+23+11+89+14+7~
+##  9 2008-09-13     9 en       FALSE      TRUE          52843 84+23+13+16+70+933+~
+## 10 2008-09-13    10 en       FALSE      TRUE            733 79+80+82+10+16+83+24
 ## # ... with 7,269,683 more rows</code></pre>
 <pre class="r"><code>tags</code></pre>
 <pre><code>## # A tibble: 14,467,138 x 6
@@ -248,36 +239,50 @@ wred &lt;- works %&gt;%
   filter(grepl(pattern = tagpat, x = tags))
 
 wred</code></pre>
-<pre><code>## # A tibble: 25,691 x 7
-## # Groups:   wid [25,691]
+<pre><code>## # A tibble: 25,675 x 7
 ##    creat_date    wid language restricted complete word_count tags               
 ##    &lt;date&gt;      &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt; &lt;chr&gt;              
 ##  1 2013-02-23 553012 en       FALSE      TRUE            706 10+116+16+767851+1~
-##  2 2013-03-03 560262 en       FALSE      TRUE           8482 12+116+16+767851+9~
+##  2 2013-03-03 560262 en       FALSE      TRUE           8482 12+116+16+767851+7~
 ##  3 2013-08-17 724110 en       FALSE      TRUE           2853 10+21+14+767851+10~
 ##  4 2013-08-17 724234 en       FALSE      TRUE           1287 10+21+22+14+767851~
 ##  5 2013-08-24 730619 en       FALSE      TRUE           2677 11+116+14+767851+1~
-##  6 2013-08-26 732987 en       FALSE      TRUE            356 10+21+14+767851+64~
+##  6 2013-08-26 732987 en       FALSE      TRUE            356 10+21+14+767851+99~
 ##  7 2013-08-29 735405 en       FALSE      TRUE            235 10+21+14+767851+10~
 ##  8 2013-09-01 737805 en       FALSE      FALSE          2901 10+116+16+767851+9~
 ##  9 2013-09-02 739630 en       FALSE      TRUE            838 116+14+767851+1072~
 ## 10 2013-09-09 745903 en       FALSE      TRUE           2133 13+116+20+767851+1~
-## # ... with 25,681 more rows</code></pre>
+## # ... with 25,665 more rows</code></pre>
 <p>We’re now down to about 26K works, a respectable but not overwhelming fraction of the data set.</p>
 </div>
 <div id="make-a-long-works-data-frame" class="section level3">
 <h3>Make a long <code>works</code> data frame</h3>
 <p>Next, unroll the tag column into a long data frame, by way of a list-column.</p>
-<pre class="r"><code>wlong_fandom &lt;- wred %&gt;% 
-  mutate(tag_list = stringr::str_split(.data$tags, 
-                                       stringr::fixed(&quot;+&quot;))) %&gt;% 
+<pre class="r"><code>wlist &lt;- wred %&gt;% 
+  mutate(tag_list = stringr::str_split(.data$tags, stringr::fixed(&quot;+&quot;)))
+
+wlong &lt;- wlist %&gt;% 
   unnest(tag_list) %&gt;% 
   mutate(tag_list = as.integer(tag_list)) %&gt;% 
   select(-tags)
 
-wlong_fandom</code></pre>
-<pre><code>## # A tibble: 470,820 x 7
-## # Groups:   wid [25,691]
+wlist</code></pre>
+<pre><code>## # A tibble: 25,675 x 8
+##    creat_date    wid language restricted complete word_count tags       tag_list
+##    &lt;date&gt;      &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt; &lt;chr&gt;      &lt;list&gt;  
+##  1 2013-02-23 553012 en       FALSE      TRUE            706 10+116+16~ &lt;chr [9~
+##  2 2013-03-03 560262 en       FALSE      TRUE           8482 12+116+16~ &lt;chr [9~
+##  3 2013-08-17 724110 en       FALSE      TRUE           2853 10+21+14+~ &lt;chr [8~
+##  4 2013-08-17 724234 en       FALSE      TRUE           1287 10+21+22+~ &lt;chr [1~
+##  5 2013-08-24 730619 en       FALSE      TRUE           2677 11+116+14~ &lt;chr [8~
+##  6 2013-08-26 732987 en       FALSE      TRUE            356 10+21+14+~ &lt;chr [7~
+##  7 2013-08-29 735405 en       FALSE      TRUE            235 10+21+14+~ &lt;chr [9~
+##  8 2013-09-01 737805 en       FALSE      FALSE          2901 10+116+16~ &lt;chr [7~
+##  9 2013-09-02 739630 en       FALSE      TRUE            838 116+14+76~ &lt;chr [1~
+## 10 2013-09-09 745903 en       FALSE      TRUE           2133 13+116+20~ &lt;chr [1~
+## # ... with 25,665 more rows</code></pre>
+<pre class="r"><code>wlong</code></pre>
+<pre><code>## # A tibble: 470,549 x 7
 ##    creat_date    wid language restricted complete word_count tag_list
 ##    &lt;date&gt;      &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt;    &lt;int&gt;
 ##  1 2013-02-23 553012 en       FALSE      TRUE            706       10
@@ -285,21 +290,20 @@ wlong_fandom</code></pre>
 ##  3 2013-02-23 553012 en       FALSE      TRUE            706       16
 ##  4 2013-02-23 553012 en       FALSE      TRUE            706   767851
 ##  5 2013-02-23 553012 en       FALSE      TRUE            706   150769
-##  6 2013-02-23 553012 en       FALSE      TRUE            706    30924
+##  6 2013-02-23 553012 en       FALSE      TRUE            706     3561
 ##  7 2013-02-23 553012 en       FALSE      TRUE            706   994409
-##  8 2013-02-23 553012 en       FALSE      TRUE            706  6418184
+##  8 2013-02-23 553012 en       FALSE      TRUE            706   994408
 ##  9 2013-02-23 553012 en       FALSE      TRUE            706   813700
 ## 10 2013-03-03 560262 en       FALSE      TRUE           8482       12
-## # ... with 470,810 more rows</code></pre>
-<p>In the long data frame, I’ve dropped the original <code>tags</code> column, which holds the character string of tag IDs separated by + symbols. It’s still there in the <code>wred</code> frame, but it’s not useful and hurts readability to repeat it every row of <code>wlong</code>.</p>
+## # ... with 470,539 more rows</code></pre>
+<p>In the long data frame (<code>wlong</code>), I’ve dropped the original <code>tags</code> column, which holds the character string of tag IDs separated by + symbols. It’s still there in the <code>wred</code> frame, but it’s not useful and hurts readability to repeat it every row of <code>wlong</code>.</p>
 <p>Finally, for ease of reading I want to attach tag names to my long works frame. Might as well add tag type while I’m in the neighborhood.</p>
-<pre class="r"><code>wtagged_fandom &lt;- wlong_fandom %&gt;% 
+<pre class="r"><code>wtagged &lt;- wlong %&gt;% 
   left_join(tags %&gt;% select(id, type, name), 
             by = c(&quot;tag_list&quot; = &quot;id&quot;))
 
-wtagged_fandom</code></pre>
-<pre><code>## # A tibble: 470,820 x 9
-## # Groups:   wid [25,691]
+wtagged</code></pre>
+<pre><code>## # A tibble: 470,549 x 9
 ##    creat_date    wid language restricted complete word_count tag_list type      
 ##    &lt;date&gt;      &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     
 ##  1 2013-02-23 553012 en       FALSE      TRUE            706       10 Rating    
@@ -307,30 +311,28 @@ wtagged_fandom</code></pre>
 ##  3 2013-02-23 553012 en       FALSE      TRUE            706       16 ArchiveWa~
 ##  4 2013-02-23 553012 en       FALSE      TRUE            706   767851 Fandom    
 ##  5 2013-02-23 553012 en       FALSE      TRUE            706   150769 Freeform  
-##  6 2013-02-23 553012 en       FALSE      TRUE            706    30924 Freeform  
+##  6 2013-02-23 553012 en       FALSE      TRUE            706     3561 Freeform  
 ##  7 2013-02-23 553012 en       FALSE      TRUE            706   994409 Relations~
-##  8 2013-02-23 553012 en       FALSE      TRUE            706  6418184 Character 
+##  8 2013-02-23 553012 en       FALSE      TRUE            706   994408 Character 
 ##  9 2013-02-23 553012 en       FALSE      TRUE            706   813700 Character 
 ## 10 2013-03-03 560262 en       FALSE      TRUE           8482       12 Rating    
-## # ... with 470,810 more rows, and 1 more variable: name &lt;chr&gt;</code></pre>
+## # ... with 470,539 more rows, and 1 more variable: name &lt;chr&gt;</code></pre>
 <p>Check: Are any of these tags missing a match in the <code>tags</code> frame?</p>
-<pre class="r"><code>wtagged_fandom %&gt;% 
+<pre class="r"><code>wtagged %&gt;% 
   mutate(mismatch = is.na(name)) %&gt;% 
   group_by(mismatch) %&gt;% 
-  count() %&gt;% 
-  mutate(frac = n / nrow(wtagged_fandom))</code></pre>
-<pre><code>## # A tibble: 2 x 3
+  count()</code></pre>
+<pre><code>## # A tibble: 2 x 2
 ## # Groups:   mismatch [2]
-##   mismatch      n      frac
-##   &lt;lgl&gt;     &lt;int&gt;     &lt;dbl&gt;
-## 1 FALSE    470811 1.00     
-## 2 TRUE          9 0.0000191</code></pre>
+##   mismatch      n
+##   &lt;lgl&gt;     &lt;int&gt;
+## 1 FALSE    470540
+## 2 TRUE          9</code></pre>
 <pre class="r"><code># Inspect any rows without a tag match
-wtagged_fandom %&gt;% 
+wtagged %&gt;% 
   mutate(mismatch = is.na(name)) %&gt;% 
   filter(mismatch) </code></pre>
 <pre><code>## # A tibble: 9 x 10
-## # Groups:   wid [9]
 ##   creat_date    wid language restricted complete word_count tag_list type  name 
 ##   &lt;date&gt;      &lt;int&gt; &lt;chr&gt;    &lt;lgl&gt;      &lt;lgl&gt;         &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;
 ## 1 2020-02-14 5.49e6 en       FALSE      FALSE         11784 54605328 &lt;NA&gt;  &lt;NA&gt; 
@@ -366,14 +368,13 @@ wtagged_fandom %&gt;%
 <h2>Filter the <code>tags</code> frame to in-use entries</h2>
 <p>There are 14.5 million tags and many of them don’t apply to this subset of works, so I also want to cut down the <code>tags</code> frame to its corresponding subset.</p>
 <p>After everything above, this goes pretty fast. Pull in-use tags from filtered works frame:</p>
-<pre class="r"><code>tags_used &lt;- wlong_fandom %&gt;% 
-  ungroup() %&gt;%   # had a wid group, might want to check back for problems there
+<pre class="r"><code>tags_used &lt;- wlong %&gt;% 
   select(tag_list) %&gt;% 
   distinct() %&gt;% 
   arrange(tag_list)
 
 tags_used</code></pre>
-<pre><code>## # A tibble: 61,257 x 1
+<pre><code>## # A tibble: 74,026 x 1
 ##    tag_list
 ##       &lt;int&gt;
 ##  1        9
@@ -386,14 +387,14 @@ tags_used</code></pre>
 ##  8       17
 ##  9       18
 ## 10       19
-## # ... with 61,247 more rows</code></pre>
+## # ... with 74,016 more rows</code></pre>
 <p>Then join tags frame info to each in-use tag:</p>
 <pre class="r"><code>tred &lt;- tags_used %&gt;% 
   left_join(tags, by = c(&quot;tag_list&quot; = &quot;id&quot;)) %&gt;% 
   rename(id = tag_list)
 
 tred</code></pre>
-<pre><code>## # A tibble: 61,257 x 6
+<pre><code>## # A tibble: 74,026 x 6
 ##       id type         name                      canonical cached_count merger_id
 ##    &lt;dbl&gt; &lt;chr&gt;        &lt;chr&gt;                     &lt;lgl&gt;            &lt;dbl&gt;     &lt;dbl&gt;
 ##  1     9 Rating       Not Rated                 TRUE            825385        NA
@@ -406,15 +407,14 @@ tred</code></pre>
 ##  8    17 ArchiveWarn~ Graphic Depictions Of Vi~ TRUE            519931        NA
 ##  9    18 ArchiveWarn~ Major Character Death     TRUE            379648        NA
 ## 10    19 ArchiveWarn~ Rape/Non-Con              TRUE            192479        NA
-## # ... with 61,247 more rows</code></pre>
-<p>That’s about 61K tags. When I did this the first time, without merging duplicate tags in the works list first, my filtered list of in-use tags was 74,026 entries long. So I’ve cut off more than 15% of my tags by cleaning up the list first.</p>
+## # ... with 74,016 more rows</code></pre>
 <p>And we’re done, unless I find a bug later.</p>
 </div>
 <div id="save-data" class="section level2">
 <h2>Save data</h2>
 <p>Even though the data frames are a much more manageable size now, I’ll keep saving the tags and works info in separate files. For works, I’ll keep both the subsetted-but-wide-format <code>wred</code>, and the one-row-per-tag <code>wtagged</code>.</p>
 <pre class="r"><code>#save(tred, file = &quot;data/tags_RWBY.Rda&quot;)
-#save(wred, wtagged_fandom, file = &quot;data/works_RWBY.Rda&quot;)</code></pre>
+#save(wred, wtagged, file = &quot;data/works_RWBY.Rda&quot;)</code></pre>
 </div>
 
 
