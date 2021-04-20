@@ -105,9 +105,26 @@ g_rel2 <- graph_from_data_frame(df_grel$edges,
                                 vertices = df_grel$vertices)
 summary(g_rel2)
 
+# Reduced version: Remove Redacted nodes and their edges
+vrel_reduced <- df_grel$vertices %>% 
+  filter(name_long != "Redacted")
+
+erel_reduced <- df_grel$edges %>% 
+  mutate(fmatch = from %in% vrel_reduced$name, 
+         tmatch = to %in% vrel_reduced$name) %>% 
+  filter(fmatch & tmatch) %>% 
+  select(-fmatch, -tmatch)
+
+g_rel3 <- graph_from_data_frame(erel_reduced, 
+                                directed = FALSE, 
+                                vertices = rel_reduced)
+summary(g_rel3)
+
 # Save node and edge data frames
-write_csv(df_grel$vertices, file = "data/vertices_RWBY_rel.csv")
-write_csv(df_grel$edges, file = "data/edges_RWBY_rel.csv")
+#write_csv(df_grel$vertices, file = "data/vertices_RWBY_rel.csv")
+#write_csv(df_grel$edges, file = "data/edges_RWBY_rel.csv")
+write_csv(vrel_reduced, file = "data/vertices_RWBY_rel.csv")
+write_csv(erel_reduced, file = "data/edges_RWBY_rel.csv")
 
 
 ## Build igraph object -- all tags
