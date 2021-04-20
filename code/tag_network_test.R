@@ -10,6 +10,7 @@ library(igraph)
 (load("data/tags_RWBY.Rda"))
 
 wtagged <- wtagged_fandom %>% ungroup()
+rm(wtagged_fandom)
 
 ## Exploratory looks
 
@@ -33,29 +34,39 @@ wtagged %>%
 wtagged %>% 
   filter(type == "Relationship", name == "Redacted")
 
+# Individual tag counts
+tag_counts <- wtagged %>% 
+  group_by(tag_list) %>% 
+  count()
+
+# Add tag counts (in RWBY works) to tag list
+tred <- tred %>% 
+  left_join(tag_counts, by = c("id" = "tag_list"))
+
 
 ## Bipartite network from works/tags
 
 # Edge data frame from tagged works list
-df_rel <- wtagged %>% 
-  filter(type == "Relationship") %>% 
-  select(wid, tag_list, name, word_count)
-
-
-# Build igraph object
-# 1. Modify wid column to avoid duplicate labels with tag numbers
-df_rel2 <- df_rel %>% 
+df_all <- wtagged %>% 
+  select(wid, tag_list:name, word_count) %>% 
   mutate(wid = paste0("W", as.character(wid))) %>% 
   mutate(tag_list = as.character(tag_list))
 
+df_rel <- df_all %>% 
+  filter(type == "Relationship") %>% 
+  select(-type)
+
+
+## Build igraph object -- relationships only
+
 # Before merging tags, gb_rel had 28843 nodes; after, it has 26384
-gb_rel <- df_rel2 %>% 
+gb_rel <- df_rel %>% 
   graph_from_data_frame()
 
 summary(gb_rel)
 
 # Set node type
-vertex_attr(gb_rel, "type") <- V(gb_rel)$name %in% pull(df_rel2, var = wid)
+vertex_attr(gb_rel, "type") <- V(gb_rel)$name %in% pull(df_rel, var = wid)
 table(V(gb_rel)$type)
 
 # Bipartite projection
@@ -66,28 +77,101 @@ ptm <- proc.time()
 g_rel <- bipartite_projection(gb_rel)[[1]]
 (proc.time() - ptm)   # about 30 seconds
 
-# May be easiest to match node attributes as data frame?
+
+# Match node attributes as data frame
 df_grel <- g_rel %>% 
   igraph::as_data_frame(what = "both") %>% 
   map(as_tibble)
 
-str(df_grel, max.level = 2)
+df_grel$vertices
+df_grel$edges
 
-tagsumm <- df_rel2 %>% 
+tagsumm <- df_rel %>% 
   select(-wid) %>% 
   group_by(tag_list) %>% 
   summarize(name = unique(name), 
             word_count = sum(word_count, na.rm = TRUE)) %>% 
   arrange(as.numeric(tag_list)) 
 
-# Match in longer tag name and wordcount
+# Match in longer tag name and wordcount, add use count from tred frame
 df_grel$vertices <- df_grel$vertices %>% 
   left_join(tagsumm, by = c("name" = "tag_list")) %>% 
-  rename(name_long = name.y)
+  rename(name_long = name.y) %>% 
+  left_join(tred %>% select(id, n) %>% mutate(id = as.character(id)), 
+            by = c("name" = "id")) %>% 
+  rename(use_count = n)
 
-g2 <- graph_from_data_frame(df_grel$edges, 
-                            vertices = df_grel$vertices)
-summary(g2)
+g_rel2 <- graph_from_data_frame(df_grel$edges, 
+                                vertices = df_grel$vertices)
+summary(g_rel2)
+
+# Save node and edge data frames
+write_csv(df_grel$vertices, file = "data/vertices_RWBY_rel.csv")
+write_csv(df_grel$edges, file = "data/edges_RWBY_rel.csv")
+
+
+## Build igraph object -- all tags
+
+gb_all <- df_all %>% 
+  graph_from_data_frame()
+summary(gb_all)
+
+# Set node type
+vertex_attr(gb_all, "type") <- V(gb_all)$name %in% pull(df_all, var = wid)
+table(V(gb_all)$type)
+
+# Bipartite projection
+bipartite_projection_size(gb_all)
+
+# Make bipartite projections
+
+# Buckle up RAM, this will hurt
+rm(gb_rel)
+# Get memory errors if we run this straight. Solution courtesy of: 
+#  https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R
+if(.Platform$OS.type == "windows") withAutoprint({
+  memory.size()
+  memory.size(TRUE)
+  memory.limit()
+})
+memory.limit(size=56000)
+
+ptm <- proc.time()
+g_all <- bipartite_projection(gb_all)[[1]]
+(proc.time() - ptm)   # about 
+
+
+# Match node attributes as data frame
+df_gall <- g_all %>% 
+  igraph::as_data_frame(what = "both") %>% 
+  map(as_tibble)
+
+df_gall$vertices
+df_gall$edges
+
+tagsumm <- df_all %>% 
+  select(-wid) %>% 
+  group_by(tag_list) %>% 
+  summarize(name = unique(name), 
+            word_count = sum(word_count, na.rm = TRUE)) %>% 
+  arrange(as.numeric(tag_list)) 
+
+# Match in longer tag name and wordcount, add use count from tred frame
+df_gall$vertices <- df_gall$vertices %>% 
+  left_join(tagsumm, by = c("name" = "tag_list")) %>% 
+  rename(name_long = name.y) %>% 
+  left_join(tred %>% select(id, n) %>% mutate(id = as.character(id)), 
+            by = c("name" = "id")) %>% 
+  rename(use_count = n)
+
+g_all2 <- graph_from_data_frame(df_gall$edges, 
+                                vertices = df_gall$vertices)
+summary(g_all2)
+
+# Save node and edge data frames
+write_csv(df_gall$vertices, file = "data/vertices_RWBY.csv")
+write_csv(df_gall$edges, file = "data/edges_RWBY.csv")
+
 
 
 ## Check out the igraph object
