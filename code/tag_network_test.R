@@ -96,7 +96,7 @@ bipartite_projection_size(gb_rel)
 
 # Before tag merger, g_rel had 7759 nodes; after, it has 5307
 ptm <- proc.time()
-g_rel <- bipartite_projection(gb_rel)[[1]]
+g_rel <- bipartite_projection(gb_rel, which = FALSE)
 (proc.time() - ptm)   # about 30 seconds
 
 
@@ -166,6 +166,7 @@ bipartite_projection_size(gb_all)
 
 # Buckle up RAM, this will hurt
 rm(gb_rel)
+rm(wtagged)
 # Get memory errors if we run this straight. Solution courtesy of: 
 #  https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R
 if(.Platform$OS.type == "windows") withAutoprint({
@@ -175,11 +176,12 @@ if(.Platform$OS.type == "windows") withAutoprint({
 })
 memory.limit(size=56000)
 
+# Try getting just the first (AKA tags AKA type = FALSE) projection
 ptm <- proc.time()
-g_all <- bipartite_projection(gb_all)[[1]]
-(proc.time() - ptm)   # "Error: cannot allocate vector of size 2.5 Gb" after 17.5 hours, fml 
+g_all <- bipartite_projection(gb_all, which = "false")
+(proc.time() - ptm)   # only 5 seconds for the tag projection, really?
 
-save(g_all, "networks/bipart_proj_RWBY.Rda")
+save(g_all, file = "networks/tags_project_RWBY.Rda")
 
 
 # Match node attributes as data frame
@@ -193,7 +195,8 @@ df_gall$edges
 tagsumm <- df_all %>% 
   select(-wid) %>% 
   group_by(tag_list) %>% 
-  summarize(name = unique(name), 
+  summarize(type = unique(type), 
+            name = unique(name), 
             word_count = sum(word_count, na.rm = TRUE)) %>% 
   arrange(as.numeric(tag_list)) 
 
@@ -211,6 +214,11 @@ summary(g_all2)
 
 
 # Reduced version: Remove Redacted nodes and their edges
+df_gall$vertices %>% 
+  mutate(redact = name_long == "Redacted") %>% 
+  group_by(redact) %>% 
+  count()
+
 vall_reduced <- df_gall$vertices %>% 
   filter(name_long != "Redacted")
 
