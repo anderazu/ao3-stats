@@ -117,7 +117,7 @@ erel_reduced <- df_grel$edges %>%
 
 g_rel3 <- graph_from_data_frame(erel_reduced, 
                                 directed = FALSE, 
-                                vertices = rel_reduced)
+                                vertices = vrel_reduced)
 summary(g_rel3)
 
 # Save node and edge data frames
@@ -155,7 +155,9 @@ memory.limit(size=56000)
 
 ptm <- proc.time()
 g_all <- bipartite_projection(gb_all)[[1]]
-(proc.time() - ptm)   # about 
+(proc.time() - ptm)   # "Error: cannot allocate vector of size 2.5 Gb" after 17.5 hours, fml 
+
+save(g_all, "networks/bipart_proj_RWBY.Rda")
 
 
 # Match node attributes as data frame
@@ -184,6 +186,23 @@ df_gall$vertices <- df_gall$vertices %>%
 g_all2 <- graph_from_data_frame(df_gall$edges, 
                                 vertices = df_gall$vertices)
 summary(g_all2)
+
+
+# Reduced version: Remove Redacted nodes and their edges
+vall_reduced <- df_gall$vertices %>% 
+  filter(name_long != "Redacted")
+
+eall_reduced <- df_gall$edges %>% 
+  mutate(fmatch = from %in% vall_reduced$name, 
+         tmatch = to %in% vall_reduced$name) %>% 
+  filter(fmatch & tmatch) %>% 
+  select(-fmatch, -tmatch)
+
+g_all3 <- graph_from_data_frame(eall_reduced, 
+                                directed = FALSE, 
+                                vertices = vall_reduced)
+summary(g_all3)
+
 
 # Save node and edge data frames
 write_csv(df_gall$vertices, file = "data/vertices_RWBY.csv")
