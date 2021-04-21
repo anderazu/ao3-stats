@@ -19,6 +19,28 @@ wtagged %>% group_by(type) %>%
   count() %>% 
   mutate(frac = n / nrow(wtagged))
 
+# Looking by category
+wtagged %>% filter(type == "Category")
+
+wtagged %>% 
+  filter(type == "Category") %>%   # number of category tags per work 
+  group_by(wid) %>% count()
+
+wtagged %>% 
+  filter(type == "Category") %>%   # frequency distribution of the above
+  group_by(wid) %>% count() %>% 
+  group_by(n) %>% 
+  count() %>%
+  mutate(frac = nn / nrow(wred))   # 74% have one category tag, 11% have 2
+
+wtagged %>%   # how many works don't have a cateogry tag at all?
+  group_by(wid) %>% 
+  mutate(ncat = sum(type == "Category")) %>%   # number of category tags
+  group_by(ncat) %>% 
+  count() %>% 
+  mutate(frac = n / nrow(wtagged))
+
+
 # Peek at the top
 wtagged %>% 
   filter(type == "Relationship")
