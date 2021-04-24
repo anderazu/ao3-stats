@@ -30,7 +30,7 @@ memory.limit(size=56000)
 With that out of the way, start by reading in `works`:
 
 ```{r}
-load("../data/works.Rda")
+load("data/works.Rda")
 works
 ```
 
