@@ -34,7 +34,7 @@ wlong <- works %>%
   unnest(tag_list) %>% 
   select(-tags) %>% 
   mutate(tag_list = as.integer(tag_list))
-(proc.time() - ptm)   # about 7 minutes
+(proc.time() - ptm)   # about 5-7 minutes
 
 object.size(works)
 object.size(wlong)
@@ -68,17 +68,25 @@ rm(works)
 # 3. Then pull in the name of the root (merged) tag with another left_join
 ptm <- proc.time()
 wtagged <- wlong %>% 
-  left_join(tags %>% select(id, merger_id), 
+  left_join(tags %>% select(id, merger_id),         # step 1
             by = c("tag_list" = "id")) %>% 
-  mutate(tag = coalesce(merger_id, tag_list)) %>% 
-  select(-tag_list, -merger_id) %>% 
-  left_join(tags %>% select(id, name), 
-            by = c("tag" = "id")) %>% 
-  rename(tag_name = name)
-(proc.time() - ptm)   # about 
+  mutate(tag = coalesce(merger_id, tag_list)) %>%   # step 2
+  select(-tag_list, -merger_id) #%>% 
+  #left_join(tags %>% select(id, name),   # do this after second merge
+  #          by = c("tag" = "id")) %>% 
+  #rename(tag_name = name)
+(proc.time() - ptm)   # about 3 minutes
 
 
-# Check: Any tags I couldn't match?
+# Biggest issue: Some of the tags left in wtagged still have merger_id values
+wtagged %>% 
+  select(tag) %>% 
+  distinct() %>% 
+  left_join(tags, by = c("tag" = "id")) %>% 
+  filter(!is.na(merger_id))
+
+
+# Smaller issue: Any tag names missing?
 wtagged %>% 
   mutate(mismatch = is.na(tag_name)) %>% 
   group_by(mismatch) %>% 
@@ -86,14 +94,34 @@ wtagged %>%
   mutate(frac = n / nrow(wtagged))
 # Yep, about 8200 out of 120 million rows, or 0.007%
 
-# Inspect any rows without a tag match
+# Inspect rows without a tag name 
 wtagged %>% 
   mutate(mismatch = is.na(tag_name)) %>% 
   filter(mismatch) 
 
-# Clean up
+
+# Clean up, then do a second merge
 rm(wlong)
-rm(tags)
+#rm(tags)
+
+ptm <- proc.time()
+wtagged <- wtagged %>%   # now, input is existing wtagged frame
+  left_join(tags %>% select(id, merger_id), 
+            by = c("tag" = "id")) %>%   # same join except tag_list -> tag now
+  mutate(tag2 = coalesce(merger_id, tag)) %>% 
+  select(-tag, -merger_id) %>% 
+  left_join(tags %>% select(id, name), 
+            by = c("tag2" = "id")) %>% 
+  rename(tag_name = name, tag = tag2)
+(proc.time() - ptm)   # about 3 minutes
+
+# And test again: See if any tags in wtagged have merger_id values
+wtagged %>% 
+  select(tag) %>% 
+  distinct() %>% 
+  left_join(tags, by = c("tag" = "id")) %>% 
+  filter(!is.na(merger_id))
+
 
 # Save long tagged works frame
 save(wtagged, file = "data/works_tagged.Rda")  
