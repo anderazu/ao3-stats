@@ -6,6 +6,9 @@
 #    for tag name
 # 3. works_merged.Rda - One row per work, tags in +-separated character string
 
+# 24 Apr 2021: Some tags have two layers of merger IDs, so run a second merge.
+
+
 library(tidyverse)
 
 
@@ -86,20 +89,6 @@ wtagged %>%
   filter(!is.na(merger_id))
 
 
-# Smaller issue: Any tag names missing?
-wtagged %>% 
-  mutate(mismatch = is.na(tag_name)) %>% 
-  group_by(mismatch) %>% 
-  count() %>% 
-  mutate(frac = n / nrow(wtagged))
-# Yep, about 8200 out of 120 million rows, or 0.007%
-
-# Inspect rows without a tag name 
-wtagged %>% 
-  mutate(mismatch = is.na(tag_name)) %>% 
-  filter(mismatch) 
-
-
 # Clean up, then do a second merge
 rm(wlong)
 #rm(tags)
@@ -123,6 +112,20 @@ wtagged %>%
   filter(!is.na(merger_id))
 
 
+# Smaller issue: Any tag names missing?
+wtagged %>% 
+  mutate(mismatch = is.na(tag_name)) %>% 
+  group_by(mismatch) %>% 
+  count() %>% 
+  mutate(frac = n / nrow(wtagged))
+# Yep, about 8200 out of 120 million rows, or 0.007%
+
+# Inspect rows without a tag name 
+wtagged %>% 
+  mutate(mismatch = is.na(tag_name)) %>% 
+  filter(mismatch) 
+
+
 # Save long tagged works frame
 save(wtagged, file = "data/works_tagged.Rda")  
 
@@ -136,7 +139,8 @@ works_merged <- wtagged %>%
   nest(tag_list = tag) %>% 
   mutate(tags = map_chr(tag_list, 
                         ~ paste0(pull(.x), collapse = "+"))) %>% 
-  select(-tag_list)
+  select(-tag_list) %>% 
+  ungroup()
 (proc.time() - ptm)  # this takes a while (didn't time yet, at least 30 min?)
 
 
