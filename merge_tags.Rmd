@@ -5,6 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
 
 ## Merge duplicate tags
@@ -154,7 +155,7 @@ works_merged
 And again, this is where I would save the "rolled up" version of the tag-merged works frame:
 
 ```{r}
-save(works_merged, file = "data/works_merged.Rda")  
+#save(works_merged, file = "data/works_merged.Rda")  
 ```
 
 **CODE BELOW NOT UPDATED YET**
