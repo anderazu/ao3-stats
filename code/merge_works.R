@@ -141,7 +141,7 @@ works_merged <- wtagged %>%
                         ~ paste0(pull(.x), collapse = "+"))) %>% 
   select(-tag_list) %>% 
   ungroup()
-(proc.time() - ptm)  # this takes a while (didn't time yet, at least 30 min?)
+(proc.time() - ptm)  # about 35-40 minutes
 
 
 # Save tag-merged works frame
