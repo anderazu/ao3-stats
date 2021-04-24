@@ -26,19 +26,13 @@ wtagged %>%
   filter(type == "Category") %>%   # number of category tags per work 
   group_by(wid) %>% count()
 
-wtagged %>% 
-  filter(type == "Category") %>%   # frequency distribution of the above
-  group_by(wid) %>% count() %>% 
-  group_by(n) %>% 
-  count() %>%
-  mutate(frac = nn / nrow(wred))   # 74% have one category tag, 11% have 2
-
-wtagged %>%   # how many works don't have a cateogry tag at all?
+wtagged %>%     # number of category tags per work (summarize)
   group_by(wid) %>% 
-  mutate(ncat = sum(type == "Category")) %>%   # number of category tags
+  transmute(ncat = sum(type == "Category")) %>% # number of category tags
+  distinct() %>%   # cut to unique rows
   group_by(ncat) %>% 
   count() %>% 
-  mutate(frac = n / nrow(wtagged))
+  mutate(frac = n / nrow(wred))
 
 
 # Peek at the top
@@ -49,10 +43,9 @@ wtagged %>%
 wtagged %>% 
   filter(type == "Relationship") %>% 
   group_by(name) %>% 
-  count() %>% 
-  arrange(desc(n)) 
+  count(sort = TRUE)
 
-# Rarepairs or otherwise uncommon Relationship tags
+# Uncommon relationship tags
 wtagged %>% 
   filter(type == "Relationship", name == "Redacted")
 
@@ -61,7 +54,7 @@ tag_counts <- wtagged %>%
   group_by(tag_list) %>% 
   count()
 
-# Add tag counts (in RWBY works) to tag list
+# Add tag counts (in this fandom's works) to tag list
 tred <- tred %>% 
   left_join(tag_counts, by = c("id" = "tag_list"))
 
@@ -71,8 +64,8 @@ tred <- tred %>%
 # Edge data frame from tagged works list
 df_all <- wtagged %>% 
   select(wid, tag_list:name, word_count) %>% 
-  mutate(wid = paste0("W", as.character(wid))) %>% 
-  mutate(tag_list = as.character(tag_list))
+  mutate(wid = paste0("W", as.character(wid)), 
+         tag_list = as.character(tag_list))
 
 df_rel <- df_all %>% 
   filter(type == "Relationship") %>% 
