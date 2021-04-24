@@ -235,6 +235,8 @@ summary(g_all3) # cuts to 27K nodes
 write_csv(df_gall$vertices, file = "data/vertices_RWBY.csv")
 write_csv(df_gall$edges, file = "data/edges_RWBY.csv")
 
+write_csv(vall_reduced, file = "data/vertices_RWBY_reduced.csv")
+write_csv(eall_reduced, file = "data/edges_RWBY_reduced.csv")
 
 
 ## CODE BELOW IS ONLY SEMI-UPDATED
