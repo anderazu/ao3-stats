@@ -8,9 +8,12 @@ library(igraph)
 # Import data
 (load("data/works_RWBY.Rda"))
 (load("data/tags_RWBY.Rda"))
+#(load("data/works_MTAP.Rda"))
+#(load("data/tags_MTAP.Rda"))
 
-wtagged <- wtagged_fandom %>% ungroup()
+wtagged <- wtagged_fandom
 rm(wtagged_fandom)
+
 
 ## Exploratory looks
 
@@ -169,7 +172,7 @@ if(.Platform$OS.type == "windows") withAutoprint({
 })
 memory.limit(size=56000)
 
-# Try getting just the first (AKA tags AKA type = FALSE) projection
+# Try getting just the first (AKA tags, type = FALSE) projection
 ptm <- proc.time()
 g_all <- bipartite_projection(gb_all, which = "false")
 (proc.time() - ptm)   # only 5 seconds for the tag projection, really?
@@ -185,6 +188,7 @@ df_gall <- g_all %>%
 df_gall$vertices
 df_gall$edges
 
+# Pull in tag info: type, name, associated wordcount
 tagsumm <- df_all %>% 
   select(-wid) %>% 
   group_by(tag_list) %>% 
@@ -208,7 +212,7 @@ summary(g_all2)
 
 # Reduced version: Remove Redacted nodes and their edges
 df_gall$vertices %>% 
-  mutate(redact = name_long == "Redacted") %>% 
+  mutate(redact = (name_long == "Redacted")) %>% 
   group_by(redact) %>% 
   count()
 
@@ -224,7 +228,7 @@ eall_reduced <- df_gall$edges %>%
 g_all3 <- graph_from_data_frame(eall_reduced, 
                                 directed = FALSE, 
                                 vertices = vall_reduced)
-summary(g_all3)
+summary(g_all3) # cuts to 27K nodes
 
 
 # Save node and edge data frames
@@ -233,21 +237,22 @@ write_csv(df_gall$edges, file = "data/edges_RWBY.csv")
 
 
 
+## CODE BELOW IS ONLY SEMI-UPDATED
 ## Check out the igraph object
 
 # Degree distribution
-degg2 <- tibble(name = V(g2)$name, deg = degree(g2)) 
+deg_all <- tibble(name = V(g_all3)$name, deg = degree(g_all3)) 
 
-degg2 %>% group_by(deg) %>% count()
+deg_all %>% group_by(deg) %>% count()
 
-degg2 %>% ggplot(aes(x = deg)) + 
+deg_all %>% ggplot(aes(x = deg)) + 
   geom_histogram(bins = 40) + 
-  scale_y_log10() #+
-  #scale_x_log10()
+  scale_y_log10() +
+  scale_x_log10()
 
 # Look at isolates
-degg2 %>% filter(deg == 0) %>% 
-  left_join(df_grel$vertices)
+deg_all %>% filter(deg == 0) %>% 
+  left_join(df_gall$vertices)
 
 # Remove isolates
 g3 <- delete_vertices(g2, which(degree(g2) == 0)) 
@@ -258,9 +263,9 @@ plot(g3, vertex.size = 7, vertex.label = NA)
 (proc.time() - ptm)   # about 20 seconds
 
 
-# Save a copy
-vertex_attr(g3, "Label") <- V(g3)$name_long
-write_graph(g3, file = "data/nw_relationship_RWBY.graphml", 
-            format = "graphml")
-write_graph(g3, file = "data/nw_relationship_RWBY.gml", 
-            format = "gml")
+# Save a copy (wanted to use in Gephi, ditching for Cytoscape)
+#vertex_attr(g3, "Label") <- V(g3)$name_long
+#write_graph(g3, file = "data/nw_relationship_RWBY.graphml", 
+#            format = "graphml")
+#write_graph(g3, file = "data/nw_relationship_RWBY.gml", 
+#            format = "gml")
