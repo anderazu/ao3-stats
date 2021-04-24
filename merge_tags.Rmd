@@ -7,60 +7,157 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-**This is code copied from `fandom_pull.Rmd`, where I had originally been writing up this process before realizing I wanted to move it all to a different file. That code now lives in `merge_works.R`, and I haven't gone back and reconciled this documentation yet.**
-
 ## Merge duplicate tags
 
 ### In the works list
 
-In the `tags` and `tred` frames above, the `merger_id` column has a number if that tag actually points back to an already-existing tag. I also want to save data frames that have those duplicate entries merged, and I need to do this in both the `works` and `tags` frames.
+In the `tags` frame, the `merger_id` column has a number if that tag actually points back to an already-existing tag. I want to save copies of the data that have those duplicate entries merged, and I need to do this in both the `works` and `tags` frames.
 
-I'm not claiming this is the *elegant* way to do this, but it works. 
+For the sake of using downstream code, I want both a long `works` frame (one row per tag) and a tag-merged version of the original, where all the tags are joined together with `+` symbols in a single character string.
 
-I start with the tagged works list, and split it into two temp frames--one with all the rows that don't tie to merger IDs, and one with all the rows that do. 
+First up, I was running into memory errors trying to run this straight. Solution courtesy of [ResearchGate](https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R):
+
 
 ```{r}
-# 1. Subset works frame by whether rows need merging
-temp1 <- wtagged %>% 
-  left_join(tred %>% select(id, merger_id), 
+if(.Platform$OS.type == "windows") withAutoprint({
+  memory.size()
+  memory.size(TRUE)
+  memory.limit()
+})
+memory.limit(size=56000)
+```
+
+With that out of the way, start by reading in `works`:
+
+```{r}
+load("../data/works.Rda")
+works
+```
+
+And turn it into a long data frame, by way of a list column. On my system this usually takes in the 5-7 minute range.
+
+```{r}
+# Convert tags values to list-column, then unnest into long data frame
+ptm <- proc.time()
+wlong <- works %>% 
+  mutate(tag_list = stringr::str_split(.data$tags, 
+                                       stringr::fixed("+"))) %>% 
+  unnest(tag_list) %>% 
+  select(-tags) %>% 
+  mutate(tag_list = as.integer(tag_list))
+(proc.time() - ptm)   # about 5-7 minutes
+```
+
+Next, I need to get the tags. And drop the original `works` frame, because I need that memory.
+
+```{r}
+rm(works)
+load("data/tags.Rda")
+tags
+```
+
+What I need to do next is look up every tag in the `works` frame, see if that tag has a `merger_id` in the `tags` frame, and if so, swap out the original number for the `merger_id`. In code steps, that's 
+
+1. Grab `id` and `merger_id` columns from `tags` frame
+
+2. Make new `tag` column equal to `merger_id` (if present) or `id` (if no `merger_id`)
+
+3. Then pull in the name of the root (merged) tag with another `left_join()`
+
+```{r}
+wtagged <- wlong %>% 
+  left_join(tags %>% select(id, merger_id),         # step 1
             by = c("tag_list" = "id")) %>% 
-  filter(is.na(merger_id)) %>%   # if merger_id = NA, no merge needed
-  select(-merger_id)
-
-temp2 <- wtagged %>% 
-  left_join(tred %>% select(id, merger_id), 
-            by = c("tag_list" = "id")) %>% 
-  filter(!is.na(merger_id))      # non-NA merger_id, need to merge
-
-temp2
+  mutate(tag = coalesce(merger_id, tag_list)) %>%   # step 2
+  select(-tag_list, -merger_id)
 ```
 
-Next, take that second frame and replace the current name and tag ID with the original ones. (I keep wanting to call them the "canonical" ones, but that has a specific meaning in this data.)
+And I'll skip step 3 for now, because it turns out one merge isn't enough. Checking the new `wtagged` frame, some of the tags in there still have corresponding merger IDs. I think this happens if there are `canonical == TRUE` tags that also have a `merger_id`, but I'm less concerned with why than with replacing them. 
 
 ```{r}
-# 2. For frame of duplicated tags, replace with merged ID and name
-temp2 <- temp2 %>% 
-  select(-tag_list) %>%   # drop the current (redundant) tag number
-  left_join(tred %>% select(id, name), 
-            by = c("merger_id" = "id")) %>%  # pull in merged names and tags
-  rename(tag_list = merger_id, 
-         name = name.y) %>%   # align names with wtagged
-  select(-name.x) %>%    # remove old name and tag ID
-  relocate(tag_list, .before = type)  # align column order with wtagged
+wtagged %>% 
+  select(tag) %>% 
+  distinct() %>% 
+  left_join(tags, by = c("tag" = "id")) %>% 
+  filter(!is.na(merger_id))
 
-temp2
 ```
 
-Finally, recombine those frames into a new works frame. 
+To do this, repeat the merge process from above, this time using the once-merged `wtagged` frame as input. 
 
 ```{r}
-# 3. Recombine frames into new, merged works list
-wmerged <- bind_rows(temp1, temp2) %>% 
-  arrange(wid)
+rm(wlong)   # seriously, 120 million rows in this thing, I need the memory
 
-# And clean up, this shit is memory intensive
-rm(temp1, temp2)
+wtagged <- wtagged %>%   
+  left_join(tags %>% select(id, merger_id), 
+            by = c("tag" = "id")) %>%   # same join except tag_list -> tag now
+  mutate(tag2 = coalesce(merger_id, tag)) %>% 
+  select(-tag, -merger_id) %>% 
+  left_join(tags %>% select(id, name),  # step 3 (pull in tag names)
+            by = c("tag2" = "id")) %>% 
+  rename(tag_name = name, tag = tag2)
+
+wtagged
 ```
+
+Note that here I finally did my third step from above, pulling in the name of each tag from the `tags` frame. 
+
+To be sure that this got it, rerun my test to see if any of the tags in `wtagged` have a corresponding `merger_id`:
+
+```{r}
+wtagged %>% 
+  select(tag) %>% 
+  distinct() %>% 
+  left_join(tags, by = c("tag" = "id")) %>% 
+  filter(!is.na(merger_id))
+```
+
+Success! We've merged the second layer of references, and there isn't a third. One smaller issue that I don't think I care about, but wanted to note: Not all of the tags had names when I matched those in.
+
+```{r}
+# Any tag names missing?
+wtagged %>% 
+  mutate(mismatch = is.na(tag_name)) %>% 
+  group_by(mismatch) %>% 
+  count() %>% 
+  mutate(frac = n / nrow(wtagged))
+
+# Inspect rows without a tag name 
+wtagged %>% 
+  mutate(mismatch = is.na(tag_name)) %>% 
+  filter(mismatch) 
+```
+
+In particular, about 8200 out of 120 million rows, or 0.007%. From the code above and spot-checking, I believe all of these are cases where the tag number isn't in the frame. Nothing else to be done about it, and it only affects a sliver of the data set, so move on. 
+
+This is the point at which I would save the long tagged works frame:
+
+```{r}
+#save(wtagged, file = "data/works_tagged.Rda")  
+```
+
+The last thing left to do is remake the "short" works frame, where all the tags are listed in one character value. For reasons beyond my ken, this step takes the longest of any of them.
+
+```{r}
+works_merged <- wtagged %>% 
+  group_by(wid) %>% 
+  select(-tag_name) %>% 
+  nest(tag_list = tag) %>% 
+  mutate(tags = map_chr(tag_list, 
+                        ~ paste0(pull(.x), collapse = "+"))) %>% 
+  select(-tag_list) %>% 
+  ungroup()
+
+works_merged
+```
+
+And again, this is where I would save the "rolled up" version of the tag-merged works frame:
+
+```{r}
+save(works_merged, file = "data/works_merged.Rda")  
+```
+
+**CODE BELOW NOT UPDATED YET**
 
 
 ### In the tags list
@@ -72,7 +169,7 @@ So, I think I'll try to do something similar to the above--split the frame, do s
 Start by splitting my reduced tags list into "original" and "redundant" frames.
 
 ```{r}
-tred %>% 
-  left_join(tred %>% select(-merger_id), 
-            by = c("merger_id" = "id"))
+#tred %>% 
+#  left_join(tred %>% select(-merger_id), 
+#            by = c("merger_id" = "id"))
 ```
