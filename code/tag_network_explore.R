@@ -63,3 +63,28 @@ vred %>% filter(degRed == 0)
 vred %>% ggplot(aes(x = type, y = degRed)) + 
   geom_violin() + 
   scale_y_log10()
+
+
+## Collect some network statistics
+
+#g <- g_all
+getNWstats <- function(g) {
+  nNodes <- vcount(g)
+  nIso <- sum(degree(g) == 0)
+  nEff <- nNodes - nIso
+  nEdges <- ecount(g)
+  weight <- sum(E(g)$weight)
+  dens <- edge_density(g)
+  avgDeg <- mean(degree(g))
+  #ccGlobal <- transitivity(g, type = "global")
+  #ccLocal <- transitivity(g, type = "weighted")
+  assort <- assortativity_degree(g, directed = FALSE)
+  df <- tibble(nEff, nIso, nNodes, nEdges, weight, dens,
+               avgDeg, #ccGlobal, ccLocal, 
+               assort)
+  return(df)
+}
+
+tibble(network = c("g_all", "gred"), 
+  bind_rows(getNWstats(g_all), 
+            getNWstats(gred)))
