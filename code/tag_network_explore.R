@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(igraph)
+library(disparityfilter)  # for network reduction
 
 
 # Import data
@@ -53,7 +54,7 @@ ered <- edges %>%
   filter(fmatch & tmatch) %>% 
   select(-fmatch, -tmatch)
 
-gred <- graph_from_data_frame(ered, vertices = vred)
+gred <- graph_from_data_frame(ered, directed = FALSE, vertices = vred)
 
 # New degree frequency distributions
 vred <- vred %>% bind_cols(degRed = degree(gred))
@@ -65,6 +66,50 @@ vred %>% ggplot(aes(x = type, y = degRed)) +
   scale_y_log10()
 
 
+## Cut everything with low use_count
+
+vhigh <- vred %>% 
+  filter(use_count > 5)
+
+ehigh <- ered %>% 
+  mutate(fmatch = from %in% vhigh$name, 
+         tmatch = to %in% vhigh$name) %>% 
+  filter(fmatch & tmatch) %>% 
+  select(-fmatch, -tmatch)
+
+ghigh <- graph_from_data_frame(ehigh, directed = FALSE, vertices = vhigh)
+
+
+## Remove character and fandom tags
+
+vfree <- vhigh %>% 
+  filter(!(type == "Character" | type == "Fandom"))
+
+efree <- ehigh %>% 
+  mutate(fmatch = from %in% vfree$name, 
+         tmatch = to %in% vfree$name) %>% 
+  filter(fmatch & tmatch) %>% 
+  select(-fmatch, -tmatch)
+
+gfree <- graph_from_data_frame(efree, directed = FALSE, vertices = vfree)
+
+
+## Apply disparity filter to get backbone
+
+# Increase available memory
+# (https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R)
+if(.Platform$OS.type == "windows") withAutoprint({
+  memory.size()
+  memory.size(TRUE)
+  memory.limit()
+})
+memory.limit(size=56000)
+
+ptm <- proc.time()
+ebbhigh <- backbone(ghigh, alpha = 0.1)
+(proc.time() - ptm)   # about 
+
+
 ## Collect some network statistics
 
 #g <- g_all
@@ -74,17 +119,45 @@ getNWstats <- function(g) {
   nEff <- nNodes - nIso
   nEdges <- ecount(g)
   weight <- sum(E(g)$weight)
-  dens <- edge_density(g)
+  #dens <- edge_density(g)
   avgDeg <- mean(degree(g))
   #ccGlobal <- transitivity(g, type = "global")
   #ccLocal <- transitivity(g, type = "weighted")
   assort <- assortativity_degree(g, directed = FALSE)
-  df <- tibble(nEff, nIso, nNodes, nEdges, weight, dens,
+  df <- tibble(nEff, nIso, nNodes, nEdges, weight, #dens,
                avgDeg, #ccGlobal, ccLocal, 
                assort)
   return(df)
 }
 
-tibble(network = c("g_all", "gred"), 
-  bind_rows(getNWstats(g_all), 
-            getNWstats(gred)))
+nwList <- list(g_all = g_all, 
+               gred = gred, 
+               ghigh = ghigh, 
+               gfree = gfree)
+
+nwStats <- tibble(network = names(nwList), 
+                  nwList %>% 
+                    map(getNWstats) %>% 
+                    bind_rows())
+
+
+
+# Save community information for smaller networks 
+clusHigh <- cluster_fast_greedy(ghigh)
+
+
+## Compare degree distributions
+
+degList <- map(list(g_all, gred, ghigh), degree)
+names(degList) <- nwStats[[1]]
+
+degFrame <- degList %>% 
+  map(enframe, "id", "degree") %>%  # turn named degree vectors into tibbles
+  enframe() %>%    # turn list into nested data frame, degree tibbles in "value"
+  unnest(cols = c(value))   # unnest data frame into long form
+
+degFrame %>% ggplot(aes(x = degree, color = name)) + 
+  geom_density() + 
+  scale_x_log10() +
+  ggtitle("Degree distributions for original and reduced networks")
+
