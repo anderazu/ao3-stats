@@ -184,6 +184,26 @@ save(gbbfree_05, gbbfree_10, gbbfree_25, gbbfree_50,
      file = "networks/gbbfree.Rda")
 
 
+## Save node and edge lists for Cytoscape
+
+saveGraph <- function(g, nwname = NULL, fandom = NULL, dir = "networks/") {
+  df <- g %>% 
+    igraph::as_data_frame(what = "both") %>% 
+    map(as_tibble)
+  
+  vfile <- paste0(dir, "vertices_", nwname, "_", fandom, ".csv")
+  efile <- paste0(dir, "edges_", nwname, "_", fandom, ".csv")
+  
+  write_csv(df$vertices, file = vfile)
+  write_csv(df$edges, file = efile)
+}
+
+saveGraph(gbbfree_50, nwname = "gbbfree_50", fandom = "RWBY")
+saveGraph(gbbfree_25, nwname = "gbbfree_25", fandom = "RWBY")
+saveGraph(gbbfree_10, nwname = "gbbfree_10", fandom = "RWBY")
+saveGraph(gbbfree_05, nwname = "gbbfree_05", fandom = "RWBY")
+
+
 ## Collect some network statistics
 
 #g <- g_all
@@ -216,7 +236,7 @@ nwStats <- tibble(network = names(nwList),
                     map(getNWstats) %>% 
                     bind_rows())
 
-
+save(nwList, file = "networks/nwlist_RWBY.Rda")
 
 
 ## Compare degree distributions
