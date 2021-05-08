@@ -148,6 +148,38 @@ gbbfree_10 <- graph_from_data_frame(ebbfree_10, vertices = vbbfree_10)
 gbbfree_25 <- graph_from_data_frame(ebbfree_25, vertices = vbbfree_25)
 gbbfree_50 <- graph_from_data_frame(ebbfree_50, vertices = vbbfree_50)
 
+
+## Save community information for smaller networks 
+cl_high <- cluster_fast_greedy(ghigh)
+cl_free <- cluster_fast_greedy(gfree)
+cl_im_free50 <- cluster_infomap(gbbfree_50)
+cl_im_free25 <- cluster_infomap(gbbfree_25)
+cl_im_free10 <- cluster_infomap(gbbfree_10)
+cl_im_free05 <- cluster_infomap(gbbfree_05)
+cl_wt_free50 <- cluster_walktrap(gbbfree_50)
+cl_wt_free25 <- cluster_walktrap(gbbfree_25)
+cl_wt_free10 <- cluster_walktrap(gbbfree_10)
+cl_wt_free05 <- cluster_walktrap(gbbfree_05)
+
+save(cl_im_free50, cl_im_free25, cl_im_free10, cl_im_free05, 
+     cl_wt_free50, cl_wt_free25, cl_wt_free10, cl_wt_free05, 
+     file = "networks/cluster_bbfree.Rda")
+
+
+# Add community info to graphs and save
+
+vertex_attr(gbbfree_50, "clusIM") <- membership(cl_im_free50)
+vertex_attr(gbbfree_50, "clusWT") <- membership(cl_wt_free50)
+
+vertex_attr(gbbfree_25, "clusIM") <- membership(cl_im_free25)
+vertex_attr(gbbfree_25, "clusWT") <- membership(cl_wt_free25)
+
+vertex_attr(gbbfree_10, "clusIM") <- membership(cl_im_free10)
+vertex_attr(gbbfree_10, "clusWT") <- membership(cl_wt_free10)
+
+vertex_attr(gbbfree_05, "clusIM") <- membership(cl_im_free05)
+vertex_attr(gbbfree_05, "clusWT") <- membership(cl_wt_free05)
+
 save(gbbfree_05, gbbfree_10, gbbfree_25, gbbfree_50, 
      file = "networks/gbbfree.Rda")
 
@@ -186,17 +218,6 @@ nwStats <- tibble(network = names(nwList),
 
 
 
-# Save community information for smaller networks 
-cl_high <- cluster_fast_greedy(ghigh)
-cl_free <- cluster_fast_greedy(gfree)
-cl_im_free50 <- cluster_infomap(gbbfree_50)
-cl_im_free25 <- cluster_infomap(gbbfree_25)
-cl_im_free10 <- cluster_infomap(gbbfree_10)
-cl_im_free05 <- cluster_infomap(gbbfree_05)
-cl_wt_free50 <- cluster_walktrap(gbbfree_50)
-cl_wt_free25 <- cluster_walktrap(gbbfree_25)
-cl_wt_free10 <- cluster_walktrap(gbbfree_10)
-cl_wt_free05 <- cluster_walktrap(gbbfree_05)
 
 ## Compare degree distributions
 
