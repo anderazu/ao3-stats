@@ -106,8 +106,50 @@ if(.Platform$OS.type == "windows") withAutoprint({
 memory.limit(size=56000)
 
 ptm <- proc.time()
-ebbhigh <- backbone(ghigh, alpha = 0.1)
-(proc.time() - ptm)   # about 
+ebbfree_10 <- backbone(gfree, alpha = 0.1)
+(proc.time() - ptm)   # about 5 hours 40 minutes?
+save(ebbfree, file = "networks/ebbfree_10.Rda")
+
+ptm <- proc.time()
+ebbfree_50 <- backbone(gfree, alpha = 0.5)
+(proc.time() - ptm)   # about 5 hours 40 minutes
+save(ebbfree_50, file = "networks/ebbfree_50.Rda")
+
+ptm <- proc.time()
+ebbfree_25 <- backbone(gfree, alpha = 0.25)
+(proc.time() - ptm)   # about 5 hours 40 minutes
+save(ebbfree_25, file = "networks/ebbfree_25.Rda")
+
+ptm <- proc.time()
+ebbfree_05 <- backbone(gfree, alpha = 0.05)
+(proc.time() - ptm)   # about 5 hours 40 minutes
+save(ebbfree_05, file = "networks/ebbfree_05.Rda")
+
+save(ebbfree_05, ebbfree_10, ebbfree_25, ebbfree_50, 
+     file = "networks/ebbfree.Rda")
+
+
+## Turn the backbone edge lists into networks
+
+vbbfree_05 <- vfree %>% 
+  filter(name %in% ebbfree_05$from | name %in% ebbfree_05$to)
+
+vbbfree_10 <- vfree %>% 
+  filter(name %in% ebbfree_10$from | name %in% ebbfree_10$to)
+
+vbbfree_25 <- vfree %>% 
+  filter(name %in% ebbfree_25$from | name %in% ebbfree_25$to)
+
+vbbfree_50 <- vfree %>% 
+  filter(name %in% ebbfree_50$from | name %in% ebbfree_50$to)
+
+gbbfree_05 <- graph_from_data_frame(ebbfree_05, vertices = vbbfree_05)
+gbbfree_10 <- graph_from_data_frame(ebbfree_10, vertices = vbbfree_10)
+gbbfree_25 <- graph_from_data_frame(ebbfree_25, vertices = vbbfree_25)
+gbbfree_50 <- graph_from_data_frame(ebbfree_50, vertices = vbbfree_50)
+
+save(gbbfree_05, gbbfree_10, gbbfree_25, gbbfree_50, 
+     file = "networks/gbbfree.Rda")
 
 
 ## Collect some network statistics
@@ -130,10 +172,12 @@ getNWstats <- function(g) {
   return(df)
 }
 
-nwList <- list(g_all = g_all, 
-               gred = gred, 
-               ghigh = ghigh, 
-               gfree = gfree)
+nwList <- list(g_all = g_all, gred = gred, 
+               ghigh = ghigh, gfree = gfree, 
+               gbbfree_50 = gbbfree_50, 
+               gbbfree_25 = gbbfree_25, 
+               gbbfree_10 = gbbfree_10, 
+               gbbfree_05 = gbbfree_05)
 
 nwStats <- tibble(network = names(nwList), 
                   nwList %>% 
@@ -143,12 +187,20 @@ nwStats <- tibble(network = names(nwList),
 
 
 # Save community information for smaller networks 
-clusHigh <- cluster_fast_greedy(ghigh)
-
+cl_high <- cluster_fast_greedy(ghigh)
+cl_free <- cluster_fast_greedy(gfree)
+cl_im_free50 <- cluster_infomap(gbbfree_50)
+cl_im_free25 <- cluster_infomap(gbbfree_25)
+cl_im_free10 <- cluster_infomap(gbbfree_10)
+cl_im_free05 <- cluster_infomap(gbbfree_05)
+cl_wt_free50 <- cluster_walktrap(gbbfree_50)
+cl_wt_free25 <- cluster_walktrap(gbbfree_25)
+cl_wt_free10 <- cluster_walktrap(gbbfree_10)
+cl_wt_free05 <- cluster_walktrap(gbbfree_05)
 
 ## Compare degree distributions
 
-degList <- map(list(g_all, gred, ghigh), degree)
+degList <- map(nwList, degree)
 names(degList) <- nwStats[[1]]
 
 degFrame <- degList %>% 
