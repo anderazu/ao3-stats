@@ -42,13 +42,15 @@ vred <- verts %>%
   filter(!(name_long == "RWBY"))
 
 # Find and remove other tags that don't interest me
-vred %>% filter(grepl("to Be Added", x = name_long) | 
-                  grepl("Beta Read", x = name_long) | 
-                  grepl("Spoilers", x = name_long)) 
+vred %>% filter(grepl("to [bB]e [aA]dded", x = name_long) | 
+                  grepl("[bB]eta [rR]ead", x = name_long) | 
+                  grepl("[sS]poiler", x = name_long) | 
+                  grepl("[pP]osted", x = name_long)) 
 vred <- vred %>% 
-  filter(!grepl("to Be Added", x = name_long) & 
-           !grepl("Beta Read", x = name_long) &
-           !grepl("Spoilers", x = name_long)) 
+  filter(!grepl("to [bB]e [aA]dded", x = name_long) & 
+           !grepl("[bB]eta [rR]ead", x = name_long) &
+           !grepl("[sS]poiler", x = name_long) & 
+           !grepl("[pP]osted", x = name_long)) 
 
 ered <- edges %>% 
   filter(from %in% vred$name & to %in% vred$name)
