@@ -3,12 +3,12 @@
 
 library(tidyverse)
 library(igraph)
-library(disparityfilter)  # for network reduction
 
 
 # Import data
 #load("networks/tags_ship_Ironqrow.Rda")
-load("networks/tags_ship_Fair-game.Rda")
+#load("networks/tags_ship_Fair-game.Rda")
+load("networks/tags_ship_Bumbleby.Rda")
 
 summary(g_all)
 
@@ -69,69 +69,34 @@ vred %>% ggplot(aes(x = type, y = degRed)) +
 ## Cut tags with low use_count
 
 vhigh <- vred %>% 
-  filter(use_count >= 5)
+  filter(use_count >= 20)
 ehigh <- ered %>% 
   filter(from %in% vhigh$name & to %in% vhigh$name)
 ghigh <- graph_from_data_frame(ehigh, directed = FALSE, vertices = vhigh)
 
 
-vhigh10 <- vhigh %>% 
-  filter(use_count >= 10)
-ehigh10 <- ehigh %>% 
-  filter(from %in% vhigh10$name & to %in% vhigh10$name)
-ghigh10 <- graph_from_data_frame(ehigh10, directed = FALSE, vertices = vhigh10)
-
-
 ## Remove character and fandom tags
 
 vfree <- vhigh %>% 
+  filter(use_count >= 35) %>% 
   filter(!(type == "Character" | type == "Fandom"))
-efree <- ehigh %>% 
+efree <- efree %>% 
   filter(from %in% vfree$name & to %in% vfree$name)
 gfree <- graph_from_data_frame(efree, directed = FALSE, vertices = vfree)
 
-vfree10 <- vhigh10 %>% 
-  filter(!(type == "Character" | type == "Fandom"))
-efree10 <- ehigh10 %>% 
-  filter(from %in% vfree10$name & to %in% vfree10$name)
-gfree10 <- graph_from_data_frame(efree10, directed = FALSE, vertices = vfree10)
-
-vfree15 <- vhigh %>% 
-  filter(use_count >= 15) %>% 
-  filter(!(type == "Character" | type == "Fandom"))
-efree15 <- efree %>% 
-  filter(from %in% vfree15$name & to %in% vfree15$name)
-gfree15 <- graph_from_data_frame(efree15, directed = FALSE, vertices = vfree15)
-
-
 # Save these, since I keep reusing them
-save(gred, ghigh, gfree, file = "networks/tagNW_ship_Fair-game.Rda")
+save(gred, ghigh, gfree, file = "networks/tagNW_ship_Bumbleby.Rda")
 
 
 ## Cut low-weight edges
 
-ehwt2 <- ehigh %>% filter(weight >= 2)
-vhwt2 <- vhigh %>% 
-  filter(name %in% ehwt2$from | name %in% ehwt2$to)
-ghwt2 <- graph_from_data_frame(ehwt2, directed = FALSE, vertices = vhwt2)
+#ehwt <- ehigh %>% filter(weight >= 4)
+#vhwt <- vhigh %>% 
+#  filter(name %in% ehwt$from | name %in% ehwt$to)
+#ghwt <- graph_from_data_frame(ehwt, directed = FALSE, vertices = vhwt)
 
-ehwt <- ehigh %>% filter(weight >= 4)
-vhwt <- vhigh %>% 
-  filter(name %in% ehwt$from | name %in% ehwt$to)
-ghwt <- graph_from_data_frame(ehwt, directed = FALSE, vertices = vhwt)
-
-efwt2 <- efree %>% filter(weight >= 2)
-vfwt2 <- vfree %>% 
-  filter(name %in% efwt2$from | name %in% efwt2$to)
-gfwt2 <- graph_from_data_frame(efwt2, directed = FALSE, vertices = vfwt2)
-
-efwt3 <- efree %>% filter(weight >= 3)
-vfwt3 <- vfree %>% 
-  filter(name %in% efwt3$from | name %in% efwt3$to)
-gfwt3 <- graph_from_data_frame(efwt3, directed = FALSE, vertices = vfwt3)
-
-efwt <- efree15 %>% filter(weight >= 8)
-vfwt <- vfree15 %>% 
+efwt <- efree %>% filter(weight >= 20)
+vfwt <- vfree %>% 
   filter(name %in% efwt$from | name %in% efwt$to)
 gfwt <- graph_from_data_frame(efwt, directed = FALSE, vertices = vfwt)
 
@@ -142,17 +107,15 @@ gfwt <- graph_from_data_frame(efwt, directed = FALSE, vertices = vfwt)
 source("code/functions_networks.R")
 
 nwList <- list(g_all = g_all, gred = gred, 
-               ghigh = ghigh, ghigh10 = ghigh10, 
-               ghwt = ghwt, 
-               gfree = gfree, gfree10 = gfree10, gfree15 = gfree15,
-               gfwt = gfwt)
+               ghigh = ghigh, #ghwt = ghwt, 
+               gfree = gfree, gfwt = gfwt)
 
 nwStats <- tibble(network = names(nwList), 
                   nwList %>% 
                     map(getNWstats) %>% 
                     bind_rows())
 
-save(nwList, file = "networks/nwlist_ship_Fair-game.Rda")
+save(nwList, file = "networks/nwlist_ship_Bumbleby.Rda")
 
 
 ## Compare degree distributions
@@ -206,10 +169,12 @@ cl_eb <- cluster_edge_betweenness(g)
 vertex_attr(gfwt, "clusFG") <- membership(cl_fg)
 vertex_attr(gfwt, "clusEB") <- membership(cl_eb)
 
+sizes(cl_fg)
+sizes(cl_eb)
 
 #saveGraph(gfree, nwname = "gIronqrow_free", fandom = "RWBY")
 
 
 ## Save node and edge lists for Cytoscape
 
-saveGraph(gfwt, nwname = "gFairgame_free_wt8", fandom = "RWBY")
+saveGraph(gfwt, nwname = "gBumbleby_u35wt20", fandom = "RWBY")
