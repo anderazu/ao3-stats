@@ -3,11 +3,11 @@
 
 library(tidyverse)
 library(igraph)
-library(disparityfilter)  # for network reduction
 
 
 # Import data
-load("networks/tags_project_RWBY.Rda")
+#load("networks/tags_project_RWBY.Rda")
+load("networks/tags_project_SDV.Rda")
 
 summary(g_all)
 
@@ -43,18 +43,35 @@ verts %>% ggplot(aes(x = type, y = deg)) +
   scale_y_log10()
 
 
+## Remove tags I don't care about
+
 # Remove ArchiveWarning, Category, and Rating tags, plus current fandom
 vred <- verts %>% 
   filter(!(type %in% c("ArchiveWarning", "Category", "Rating"))) %>%
-  filter(!(name_long == "RWBY"))
+  filter(!(name_long == "Stardew Valley (Video Game)"))
+
+# Find and remove other tags that don't interest me
+vred %>% filter(grepl("to [bB]e [aA]dded", x = name_long) | 
+                  grepl("[bB]eta [rR]ead", x = name_long) | 
+                  grepl("[sS]poiler", x = name_long) | 
+                  grepl("[pP]osted", x = name_long) | 
+                  grepl("[tT]agging", x = name_long)) %>% 
+  arrange(desc(use_count)) %>% 
+  view()
+
+vred <- vred %>% 
+  filter(!grepl("to [bB]e [aA]dded", x = name_long) & 
+           !grepl("[bB]eta [rR]ead", x = name_long) &
+           !grepl("[sS]poiler", x = name_long) & 
+           !grepl("[pP]osted", x = name_long) & 
+           !grepl("[tT]agging", x = name_long)) 
+
 
 ered <- edges %>% 
-  mutate(fmatch = from %in% vred$name, 
-         tmatch = to %in% vred$name) %>% 
-  filter(fmatch & tmatch) %>% 
-  select(-fmatch, -tmatch)
+  filter(from %in% vred$name & to %in% vred$name)
 
 gred <- graph_from_data_frame(ered, directed = FALSE, vertices = vred)
+
 
 # New degree frequency distributions
 vred <- vred %>% bind_cols(degRed = degree(gred))
@@ -72,10 +89,7 @@ vhigh <- vred %>%
   filter(use_count > 5)
 
 ehigh <- ered %>% 
-  mutate(fmatch = from %in% vhigh$name, 
-         tmatch = to %in% vhigh$name) %>% 
-  filter(fmatch & tmatch) %>% 
-  select(-fmatch, -tmatch)
+  filter(from %in% vhigh$name & to %in% vhigh$name)
 
 ghigh <- graph_from_data_frame(ehigh, directed = FALSE, vertices = vhigh)
 
@@ -86,157 +100,35 @@ vfree <- vhigh %>%
   filter(!(type == "Character" | type == "Fandom"))
 
 efree <- ehigh %>% 
-  mutate(fmatch = from %in% vfree$name, 
-         tmatch = to %in% vfree$name) %>% 
-  filter(fmatch & tmatch) %>% 
-  select(-fmatch, -tmatch)
+  filter(from %in% vfree$name & to %in% vfree$name)
 
 gfree <- graph_from_data_frame(efree, directed = FALSE, vertices = vfree)
 
 
-## Apply disparity filter to get backbone
+## Cut low-weight edges
 
-# Increase available memory
-# (https://www.researchgate.net/post/How_to_solve_Error_cannot_allocate_vector_of_size_12_Gb_in_R)
-if(.Platform$OS.type == "windows") withAutoprint({
-  memory.size()
-  memory.size(TRUE)
-  memory.limit()
-})
-memory.limit(size=56000)
-
-ptm <- proc.time()
-ebbfree_10 <- backbone(gfree, alpha = 0.1)
-(proc.time() - ptm)   # about 5 hours 40 minutes?
-save(ebbfree, file = "networks/ebbfree_10.Rda")
-
-ptm <- proc.time()
-ebbfree_50 <- backbone(gfree, alpha = 0.5)
-(proc.time() - ptm)   # about 5 hours 40 minutes
-save(ebbfree_50, file = "networks/ebbfree_50.Rda")
-
-ptm <- proc.time()
-ebbfree_25 <- backbone(gfree, alpha = 0.25)
-(proc.time() - ptm)   # about 5 hours 40 minutes
-save(ebbfree_25, file = "networks/ebbfree_25.Rda")
-
-ptm <- proc.time()
-ebbfree_05 <- backbone(gfree, alpha = 0.05)
-(proc.time() - ptm)   # about 5 hours 40 minutes
-save(ebbfree_05, file = "networks/ebbfree_05.Rda")
-
-save(ebbfree_05, ebbfree_10, ebbfree_25, ebbfree_50, 
-     file = "networks/ebbfree.Rda")
-
-
-## Turn the backbone edge lists into networks
-
-vbbfree_05 <- vfree %>% 
-  filter(name %in% ebbfree_05$from | name %in% ebbfree_05$to)
-
-vbbfree_10 <- vfree %>% 
-  filter(name %in% ebbfree_10$from | name %in% ebbfree_10$to)
-
-vbbfree_25 <- vfree %>% 
-  filter(name %in% ebbfree_25$from | name %in% ebbfree_25$to)
-
-vbbfree_50 <- vfree %>% 
-  filter(name %in% ebbfree_50$from | name %in% ebbfree_50$to)
-
-gbbfree_05 <- graph_from_data_frame(ebbfree_05, vertices = vbbfree_05)
-gbbfree_10 <- graph_from_data_frame(ebbfree_10, vertices = vbbfree_10)
-gbbfree_25 <- graph_from_data_frame(ebbfree_25, vertices = vbbfree_25)
-gbbfree_50 <- graph_from_data_frame(ebbfree_50, vertices = vbbfree_50)
-
-
-## Save community information for smaller networks 
-cl_high <- cluster_fast_greedy(ghigh)
-cl_free <- cluster_fast_greedy(gfree)
-cl_im_free50 <- cluster_infomap(gbbfree_50)
-cl_im_free25 <- cluster_infomap(gbbfree_25)
-cl_im_free10 <- cluster_infomap(gbbfree_10)
-cl_im_free05 <- cluster_infomap(gbbfree_05)
-cl_wt_free50 <- cluster_walktrap(gbbfree_50)
-cl_wt_free25 <- cluster_walktrap(gbbfree_25)
-cl_wt_free10 <- cluster_walktrap(gbbfree_10)
-cl_wt_free05 <- cluster_walktrap(gbbfree_05)
-
-save(cl_im_free50, cl_im_free25, cl_im_free10, cl_im_free05, 
-     cl_wt_free50, cl_wt_free25, cl_wt_free10, cl_wt_free05, 
-     file = "networks/cluster_bbfree.Rda")
-
-
-# Add community info to graphs and save
-
-vertex_attr(gbbfree_50, "clusIM") <- membership(cl_im_free50)
-vertex_attr(gbbfree_50, "clusWT") <- membership(cl_wt_free50)
-
-vertex_attr(gbbfree_25, "clusIM") <- membership(cl_im_free25)
-vertex_attr(gbbfree_25, "clusWT") <- membership(cl_wt_free25)
-
-vertex_attr(gbbfree_10, "clusIM") <- membership(cl_im_free10)
-vertex_attr(gbbfree_10, "clusWT") <- membership(cl_wt_free10)
-
-vertex_attr(gbbfree_05, "clusIM") <- membership(cl_im_free05)
-vertex_attr(gbbfree_05, "clusWT") <- membership(cl_wt_free05)
-
-save(gbbfree_05, gbbfree_10, gbbfree_25, gbbfree_50, 
-     file = "networks/gbbfree.Rda")
-
-
-## Save node and edge lists for Cytoscape
-
-saveGraph <- function(g, nwname = NULL, fandom = NULL, dir = "networks/") {
-  df <- g %>% 
-    igraph::as_data_frame(what = "both") %>% 
-    map(as_tibble)
-  
-  vfile <- paste0(dir, "vertices_", nwname, "_", fandom, ".csv")
-  efile <- paste0(dir, "edges_", nwname, "_", fandom, ".csv")
-  
-  write_csv(df$vertices, file = vfile)
-  write_csv(df$edges, file = efile)
-}
-
-saveGraph(gbbfree_50, nwname = "gbbfree_50", fandom = "RWBY")
-saveGraph(gbbfree_25, nwname = "gbbfree_25", fandom = "RWBY")
-saveGraph(gbbfree_10, nwname = "gbbfree_10", fandom = "RWBY")
-saveGraph(gbbfree_05, nwname = "gbbfree_05", fandom = "RWBY")
+ehwt <- efree %>% filter(weight >= 5)
+vhwt <- vfree %>% 
+  filter(name %in% ehwt$from | name %in% ehwt$to)
+ghwt <- graph_from_data_frame(ehwt, directed = FALSE, vertices = vhwt)
 
 
 ## Collect some network statistics
 
 #g <- g_all
-getNWstats <- function(g) {
-  nNodes <- vcount(g)
-  nIso <- sum(degree(g) == 0)
-  nEff <- nNodes - nIso
-  nEdges <- ecount(g)
-  weight <- sum(E(g)$weight)
-  #dens <- edge_density(g)
-  avgDeg <- mean(degree(g))
-  #ccGlobal <- transitivity(g, type = "global")
-  #ccLocal <- transitivity(g, type = "weighted")
-  assort <- assortativity_degree(g, directed = FALSE)
-  df <- tibble(nEff, nIso, nNodes, nEdges, weight, #dens,
-               avgDeg, #ccGlobal, ccLocal, 
-               assort)
-  return(df)
-}
+source("code/functions_networks.R")
 
 nwList <- list(g_all = g_all, gred = gred, 
                ghigh = ghigh, gfree = gfree, 
-               gbbfree_50 = gbbfree_50, 
-               gbbfree_25 = gbbfree_25, 
-               gbbfree_10 = gbbfree_10, 
-               gbbfree_05 = gbbfree_05)
+               ghwt = ghwt)
 
 nwStats <- tibble(network = names(nwList), 
                   nwList %>% 
                     map(getNWstats) %>% 
                     bind_rows())
+nwStats
 
-save(nwList, file = "networks/nwlist_RWBY.Rda")
+save(nwList, file = "networks/nwlist_SDV.Rda")
 
 
 ## Compare degree distributions
@@ -248,9 +140,58 @@ degFrame <- degList %>%
   map(enframe, "id", "degree") %>%  # turn named degree vectors into tibbles
   enframe() %>%    # turn list into nested data frame, degree tibbles in "value"
   unnest(cols = c(value))   # unnest data frame into long form
+degFrame$name <- factor(degFrame$name, levels = names(degList))
 
 degFrame %>% ggplot(aes(x = degree, color = name)) + 
   geom_density() + 
   scale_x_log10() +
   ggtitle("Degree distributions for original and reduced networks")
 
+
+
+## Compare edge weight distributions
+ewList <- map(nwList, edge_attr, "weight")
+
+ewFrame <- ewList %>% 
+  map(enframe, "id", "weight") %>%  # turn named degree vectors into tibbles
+  enframe() %>%    # turn list into nested data frame, degree tibbles in "value"
+  unnest(cols = c(value))   # unnest data frame into long form
+ewFrame$name <- factor(ewFrame$name, levels = names(ewList))
+
+ewFrame %>% ggplot(aes(x = weight, color = name)) + 
+  geom_density() + 
+  scale_y_log10() +
+  scale_x_log10() +
+  ggtitle("Edge weight distributions for original and reduced networks")
+
+ewFrame %>% count(name, weight) %>% 
+  filter(!name == "gred") %>% 
+  ggplot(aes(x = weight, color = name)) + 
+  geom_point(aes(y = n)) + 
+  scale_y_log10() +
+  scale_x_log10() +
+  ggtitle("Edge weight distributions for original and reduced networks")
+
+
+
+# Community detection
+g <- gfwt
+cl_fg <- cluster_fast_greedy(g)
+cl_im <- cluster_infomap(g)
+cl_eb <- cluster_edge_betweenness(g)
+
+vertex_attr(gfwt, "clusFG") <- membership(cl_fg)
+vertex_attr(gfwt, "clusEB") <- membership(cl_eb)
+
+sizes(cl_fg)
+sizes(cl_eb)
+
+
+saveGraph(gego, nwname = "gIronqrow", fandom = "RWBY")
+
+
+## Save node and edge lists for Cytoscape
+
+source("code/functions_networks.R")
+
+saveGraph(gh10wt5, nwname = "gh10wt5", fandom = "RWBY")
