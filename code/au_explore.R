@@ -43,16 +43,30 @@ aufreq <- wtagged %>%
   filter(tag_list %in% autags$id) %>% 
   count(name, sort = TRUE) 
 
-# Remove particular rows that I don't want
-aufreq <- aufreq %>% 
-  filter(!str_detect(name, "SLEEP"))
-
 # Remove the AU part of the label
 aufreq$shortname <- aufreq %>% 
   pull(name) %>% 
   gsub("[[:space:]]+AU$", "", x = .) %>% 
   gsub("Alternate Universe - ", replacement = "", x = .)
 
-# This hangs, need to fix it
-wordcloud(aufreq$shortname, aured$n, min.freq = 2)
+# Remove (RWBY) labels
+aufreq %>% filter(str_detect(shortname, "RWBY"))  # check first
+aufreq$shortname <- aufreq %>% 
+  pull(shortname) %>% 
+  gsub(" (RWBY)", "", x = ., fixed = TRUE)
+  
 
+# Remove particular rows that I don't want
+aufreq <- aufreq %>% 
+  filter(!str_detect(shortname, "SLEEP")) %>% 
+  filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
+
+
+# Works! Needed up update Rcpp, apparently
+wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.5), min.freq = 5, 
+          rot.per = 0.2, colors = brewer.pal(8, "Dark2"))
+
+set.seed(18)
+wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 10, 
+          rot.per = 0, random.order = FALSE, random.color = TRUE, 
+          colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
