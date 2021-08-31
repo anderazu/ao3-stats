@@ -84,20 +84,17 @@ aufreq <- wkau %>%
 
 # Remove the AU part of the label
 aufreq$shortname <- aufreq %>% 
-  pull(name) %>% 
+  pull(tag_name) %>% 
   gsub("[[:space:]]+AU$", "", x = .) %>% 
   gsub("Alternate Universe - ", replacement = "", x = .)
 
-# Remove (RWBY) labels
-aufreq %>% filter(str_detect(shortname, "RWBY"))  # check first
-aufreq$shortname <- aufreq %>% 
-  pull(shortname) %>% 
-  gsub(" (RWBY)", "", x = ., fixed = TRUE)
-
-
 # Remove particular rows that I don't want
+# Okay, this is messier than the single-fandom version, need to clean up
+aufreq %>% filter(str_detect(shortname, "Alternate Universe"))
+
+# Old code, cuts 46 things instead of 1?
 aufreq <- aufreq %>% 
-  filter(!str_detect(shortname, "SLEEP")) %>% 
+#  filter(!str_detect(shortname, "SLEEP")) %>% 
   filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
 
 
