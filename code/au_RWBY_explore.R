@@ -70,3 +70,9 @@ set.seed(18)
 wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 10, 
           rot.per = 0, random.order = FALSE, random.color = TRUE, 
           colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
+
+set.seed(10)
+wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 15, 
+          rot.per = 0, random.order = FALSE, #random.color = TRUE, 
+          colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
+
