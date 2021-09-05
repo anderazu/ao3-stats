@@ -76,3 +76,27 @@ wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 15,
           rot.per = 0, random.order = FALSE, #random.color = TRUE, 
           colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
 
+
+## Collect info about works with AU tags
+
+# Number of AU tags on the work
+
+aucount <- wkau %>% 
+  filter(tag_list %in% autags$id) %>% 
+  group_by(wid) %>% 
+  count(wid, name = "auCt") %>% 
+  left_join(wkau) %>% 
+  select(-tag_list, -type, -name) %>% 
+  relocate(auCt, .after = last_col()) %>% 
+  unique()
+
+
+## Find first non-crossover work in fandom
+
+# Count fandoms per work
+fandomcount <- wtagged %>% 
+  filter(type == "Fandom") %>% 
+  group_by(wid) %>% 
+  count(wid, name = "fandomCt") %>% 
+  left_join(wtagged) %>% 
+  filter(type == "Fandom")  # save fandom names for now
