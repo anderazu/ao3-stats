@@ -26,6 +26,8 @@ autags <- freetags %>%
   filter(str_detect(name, pattern = tagpat[1]) | 
            str_detect(name, pattern = tagpat[2]))
 
+# Look for false positives
+autags %>% filter(str_detect(name, pattern = "\\wAU|AU\\w")) %>% View()
 
 # Filter works frame to rows with one of those tags
 auworks <- works %>% 
