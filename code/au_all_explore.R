@@ -2,6 +2,7 @@
 
 
 library(tidyverse)
+library(wordcloud)
 
 
 # Import data
@@ -88,23 +89,31 @@ aufreq <- wkau %>%
 aufreq$shortname <- aufreq %>% 
   pull(tag_name) %>% 
   gsub("[[:space:]]+AU$", "", x = .) %>% 
-  gsub("Alternate Universe - ", replacement = "", x = .)
+  gsub("Alternate Universe *[-:?] *", replacement = "", x = .) %>% 
+  gsub("Alternate Universe", replacement = "AU", x = .)
 
 # Remove particular rows that I don't want
 # Okay, this is messier than the single-fandom version, need to clean up
 aufreq %>% filter(str_detect(shortname, "Alternate Universe"))
+aufreq %>% filter(str_detect(shortname, "AU"))
 
-# Old code, cuts 46 things instead of 1?
+# Remove the generic AU tag
 aufreq <- aufreq %>% 
-#  filter(!str_detect(shortname, "SLEEP")) %>% 
-  filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
+  filter(!(shortname == "AU")) # the generic tag
+
+# Frequency of AU tags
+aufreq %>% 
+  ggplot(mapping = aes(x = n)) + 
+  geom_histogram() + 
+  scale_x_log10() + 
+  scale_y_log10()
 
 
 # Works! Needed up update Rcpp, apparently
-wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.5), min.freq = 5, 
+wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.5), min.freq = 1000, 
           rot.per = 0.2, colors = brewer.pal(8, "Dark2"))
 
-set.seed(18)
-wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 10, 
+set.seed(1)
+wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 3000, 
           rot.per = 0, random.order = FALSE, random.color = TRUE, 
           colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
