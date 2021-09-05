@@ -80,15 +80,15 @@ wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 15,
 ## Collect info about works with AU tags
 
 # Number of AU tags on the work
-
 aucount <- wkau %>% 
   filter(tag_list %in% autags$id) %>% 
   group_by(wid) %>% 
   count(wid, name = "auCt") %>% 
   left_join(wkau) %>% 
-  select(-tag_list, -type, -name) %>% 
+  filter(tag_list %in% autags$id) %>% 
+  select(-restricted, -type) %>% 
   relocate(auCt, .after = last_col()) %>% 
-  unique()
+  ungroup()
 
 
 ## Find first non-crossover work in fandom
@@ -99,4 +99,15 @@ fandomcount <- wtagged %>%
   group_by(wid) %>% 
   count(wid, name = "fandomCt") %>% 
   left_join(wtagged) %>% 
-  filter(type == "Fandom")  # save fandom names for now
+  filter(type == "Fandom") %>%  # save fandom names for now
+  ungroup()
+
+fandomcount %>% distinct(name, .keep_all = TRUE)  # pick minimum date row?
+firstwk <- fandomcount %>% 
+  filter(fandomCt == 1) %>% 
+  distinct(name, .keep_all = TRUE)  # earliest row excluding crossovers
+
+firstwk$creat_date
+
+# Save age (in that fandom) of each AU-tagged work
+aucount$fandomAge <- aucount$creat_date - firstwk$creat_date
