@@ -28,12 +28,12 @@ autags <- freetags %>%
 #           str_detect(name, pattern = "AU\b"))
 
 # Filter works frame to rows with one of those tags
-auworks <- wtagged %>% 
-  filter(tag_list %in% autags$id) %>% 
-  select(wid) %>% 
-  unique
-
-wkau <- wtagged %>% filter(wid %in% pull(auworks))
+# auworks <- wtagged %>% 
+#   filter(tag_list %in% autags$id) %>% 
+#   select(wid) %>% 
+#   unique
+# 
+# wkau <- wtagged %>% filter(wid %in% pull(auworks))
 
 
 ## Pull works with a particular tag
@@ -52,7 +52,7 @@ gettaggedwks <- function(works, tag, tag_col = "name") {
   return(df)
 }
 
-gettaggedwks(wtagged, tag = "Different Sex")
+gettaggedwks(wtagged, tag = tagpat)
 
 
 ## Plot wordcloud of AU tags
