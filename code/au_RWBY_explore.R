@@ -38,12 +38,12 @@ wkau <- wtagged %>% filter(wid %in% pull(auworks))
 
 ## Pull works with a particular tag
 
-gettaggedwks <- function(works, tag) {
+gettaggedwks <- function(works, tag, tag_col = "name") {
   wids <- NULL
-  for (i in seq_along(tag)) {
+  for (i in seq_along(tag)) {  # loop through specified tag patterns
     cat(tag[i], "\n")
     tempwid <- works %>% 
-      filter(str_detect(name, pattern = tag[i])) %>% 
+      filter(str_detect(.data[[tag_col]], pattern = tag[i])) %>% 
       select(wid)
     wids <- bind_rows(wids, tempwid)
   }
