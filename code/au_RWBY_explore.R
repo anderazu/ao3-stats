@@ -16,11 +16,11 @@ rm(wtagged_fandom)
 ## Find AU tags
 freetags <- tred %>% filter(type == "Freeform")
 
-temppat <- c("Alternate [Uu]niverse", "AU")
+tagpat <- c("Alternate [Uu]niverse", "AU")
 
 autags <- freetags %>% 
-  filter(str_detect(name, pattern = temppat[1]) | 
-         str_detect(name, pattern = temppat[2]))
+  filter(str_detect(name, pattern = tagpat[1]) | 
+         str_detect(name, pattern = tagpat[2]))
 
 # Trying to do better job of eliminating false positives
 #tempau <- freetags %>% 
@@ -34,6 +34,25 @@ auworks <- wtagged %>%
   unique
 
 wkau <- wtagged %>% filter(wid %in% pull(auworks))
+
+
+## Pull works with a particular tag
+
+gettaggedwks <- function(works, tag) {
+  wids <- NULL
+  for (i in seq_along(tag)) {
+    cat(tag[i], "\n")
+    tempwid <- works %>% 
+      filter(str_detect(name, pattern = tag[i])) %>% 
+      select(wid)
+    wids <- bind_rows(wids, tempwid)
+  }
+  df <- works %>% filter(wid %in% pull(wids))
+  
+  return(df)
+}
+
+gettaggedwks(wtagged, tag = "Different Sex")
 
 
 ## Plot wordcloud of AU tags
