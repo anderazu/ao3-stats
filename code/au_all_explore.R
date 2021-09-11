@@ -47,6 +47,12 @@ if(.Platform$OS.type == "windows") withAutoprint({
 })
 memory.limit(size=56000)
 
+# Add tag type back into works frame
+works <- works %>% 
+  left_join(tags %>% select(id, type), 
+            by = c("tag" = "id")) %>% 
+  relocate(type, .before = tag_name)
+
 
 ## Pull works with a particular tag
 
@@ -81,10 +87,14 @@ fandoms <- tags %>%
 # Save first instance of each fandom tag in works list
 
 #works %>% filter(tag %in% fandoms$id) %>% distinct(tag, .keep_all = TRUE)
+ptm <- proc.time()
 firstwk <- works %>% 
-  filter(tag %in% fandoms$id) %>% 
+  #filter(tag %in% fandoms$id) %>%
+  filter(type == "Fandom") %>% 
   distinct(tag, .keep_all = TRUE) %>% 
   select(-restricted, -complete, -word_count)
+(proc.time() - ptm)   # about 5 hours 40 minutes
+
 # This is 56K whereas there are 75K fandom tags, which ones are missing?
 
 # Check on missing fandoms
@@ -140,23 +150,40 @@ wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.6), min.freq = 3000,
           colors = brewer.pal(8, "Dark2"), fixed.asp = FALSE)
 
 
+## Collect info about works with AU tags
+
+# Number of AU tags on the work
+aucount <- wkau %>% 
+  filter(tag %in% autags$id) %>% 
+  group_by(wid) %>% 
+  count(wid, name = "auCt") %>% 
+  left_join(wkau) %>% 
+  filter(tag %in% autags$id) %>% 
+  select(-restricted, -type) %>% 
+  relocate(auCt, .after = last_col()) %>% 
+  ungroup()
+
+
 ## Find first non-crossover work in fandom
 
-# ** NOT UPDATED YET
-
 # Count fandoms per work
-fandomcount <- wtagged %>% 
+fandomcount <- works %>% 
+  #filter(tag %in% fandoms$id) %>% 
   filter(type == "Fandom") %>% 
   group_by(wid) %>% 
   count(wid, name = "fandomCt") %>% 
-  left_join(wtagged) %>% 
-  filter(type == "Fandom") %>%  # save fandom names for now
-  ungroup()
+  inner_join(works) %>%
+  #filter(tag %in% fandoms$id) %>% 
+  filter(type == "Fandom") %>% 
+  ungroup() 
 
-fandomcount %>% distinct(name, .keep_all = TRUE)  # pick minimum date row?
+fandomcount %>% arrange(desc(fandomCt)) 
+  
+
+fandomcount %>% distinct(tag_name, .keep_all = TRUE)  # pick minimum date row?
 firstwk <- fandomcount %>% 
   filter(fandomCt == 1) %>% 
-  distinct(name, .keep_all = TRUE)  # earliest row excluding crossovers
+  distinct(tag_name, .keep_all = TRUE)  # earliest row excluding crossovers
 
 firstwk$creat_date
 
