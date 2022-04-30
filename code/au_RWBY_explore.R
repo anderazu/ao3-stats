@@ -136,3 +136,21 @@ firstwk$creat_date
 
 # Save age (in that fandom) of each AU-tagged work
 aucount$fandomAge <- aucount$creat_date - firstwk$creat_date
+
+
+## Time-plot of when most common AUs appear?
+
+# Remove the AU part of the label
+aucount$shortname <- aucount %>% 
+  pull(name) %>% 
+  gsub("[[:space:]]+AU$", "", x = .) %>% 
+  gsub("Alternate Universe - ", replacement = "", x = .)
+
+# Look at most common 10% 
+topaus <- aucount %>% 
+  count(shortname) %>% 
+  arrange(desc(n)) %>% 
+  slice_head(prop = 0.1)
+
+topwks <- aucount %>% 
+  filter(shortname %in% topaus$shortname)
