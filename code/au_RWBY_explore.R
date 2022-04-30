@@ -22,18 +22,23 @@ autags <- freetags %>%
   filter(str_detect(name, pattern = tagpat[1]) | 
          str_detect(name, pattern = tagpat[2]))
 
+autags %>% filter(str_detect(tolower(name), "author"))
+autags <- autags %>% 
+  filter(!str_detect(tolower(name), "author")) 
+
+
 # Trying to do better job of eliminating false positives
-#tempau <- freetags %>% 
-#  filter(str_detect(name, pattern = temppat[1]) | 
+# tempau <- freetags %>%
+#  filter(str_detect(name, pattern = temppat[1]) |
 #           str_detect(name, pattern = "AU\b"))
 
 # Filter works frame to rows with one of those tags
-# auworks <- wtagged %>% 
-#   filter(tag_list %in% autags$id) %>% 
-#   select(wid) %>% 
-#   unique
-# 
-# wkau <- wtagged %>% filter(wid %in% pull(auworks))
+auworks <- wtagged %>%
+  filter(tag_list %in% autags$id) %>%
+  select(wid) %>%
+  unique
+
+wkau <- wtagged %>% filter(wid %in% pull(auworks))
 
 
 ## Pull works with particular tag(s)
@@ -76,10 +81,10 @@ aufreq$shortname <- aufreq %>%
   
 
 # Remove particular rows that I don't want
-aufreq <- aufreq %>% 
-  #filter(!str_detect(shortname, "SLEEP")) %>% 
-  filter(!str_detect(tolower(shortname), "author")) %>% 
-  filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
+# aufreq <- aufreq %>% 
+#   #filter(!str_detect(shortname, "SLEEP")) %>% 
+#   filter(!str_detect(tolower(shortname), "author")) %>% 
+#   filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
 
 
 # Plot a wordcloud
