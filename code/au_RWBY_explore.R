@@ -36,7 +36,7 @@ autags <- freetags %>%
 # wkau <- wtagged %>% filter(wid %in% pull(auworks))
 
 
-## Pull works with a particular tag
+## Pull works with particular tag(s)
 
 gettaggedwks <- function(works, tag, tag_col = "name") {
   wids <- NULL
@@ -77,11 +77,12 @@ aufreq$shortname <- aufreq %>%
 
 # Remove particular rows that I don't want
 aufreq <- aufreq %>% 
-  filter(!str_detect(shortname, "SLEEP")) %>% 
+  #filter(!str_detect(shortname, "SLEEP")) %>% 
+  filter(!str_detect(tolower(shortname), "author")) %>% 
   filter(!str_detect(shortname, "Alternate Universe")) # the generic tag
 
 
-# Works! Needed up update Rcpp, apparently
+# Plot a wordcloud
 wordcloud(aufreq$shortname, aufreq$n, scale = c(4, 0.5), min.freq = 5, 
           rot.per = 0.2, colors = brewer.pal(8, "Dark2"))
 
